@@ -1,0 +1,22 @@
+{
+    "ROS2.distro": "jazzy",
+    "python.autoComplete.extraPaths": [
+        "/opt/ros/jazzy/lib/python3.12/site-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/opt/ros/jazzy/lib/python3.12/site-packages"
+    ],
+    "terminal.integrated.env.linux": {
+        "COLCON_PREFIX_PATH": "${workspaceFolder}/robotics_playground_ws/install"
+    },
+    "terminal.integrated.profiles.linux": {
+        "ROS bash": {
+            "path": "bash",
+            "args": [
+                "--init-file",
+                "${workspaceFolder}/robotics_playground_ws/install/setup.bash"
+            ]
+        }
+    },
+    "terminal.integrated.defaultProfile.linux": "ROS bash"
+}
