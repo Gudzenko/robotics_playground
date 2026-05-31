@@ -31,6 +31,12 @@ colcon build
 source install/setup.bash
 ```
 
+For Python packages, use `--symlink-install` during development — no rebuild needed after editing `.py` files, just restart the node:
+
+```bash
+colcon build --symlink-install
+```
+
 The VS Code integrated terminal sources `install/setup.bash` automatically on startup.
 
 ---
