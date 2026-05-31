@@ -88,6 +88,25 @@ ros2 service call /learning/reset example_interfaces/srv/SetBool "{data: true}"
 ros2 service call /learning/get_status std_srvs/srv/Trigger "{}"
 ```
 
+### Actions
+
+```bash
+# List active action servers
+ros2 action list
+
+# Show action type
+ros2 action info /learning/count_mission
+
+# Show structure of an action type
+ros2 interface show example_interfaces/action/Fibonacci
+
+# Send a goal via CLI
+ros2 action send_goal /learning/count_mission example_interfaces/action/Fibonacci "{order: 10}"
+
+# Send a goal and print feedback
+ros2 action send_goal --feedback /learning/count_mission example_interfaces/action/Fibonacci "{order: 10}"
+```
+
 ---
 
 ## Package: learning
@@ -102,16 +121,19 @@ Educational package for learning ROS 2 concepts step by step.
 ```
 learning/
 ├── learning/
-│   ├── constants.py          # shared topic/service names
+│   ├── constants.py          # shared topic/service/action names
 │   ├── topics/
 │   │   ├── status_publisher.py
 │   │   ├── status_subscriber.py
 │   │   ├── command_publisher.py
 │   │   └── command_subscriber.py
-│   └── services/
-│       ├── robot_server.py
-│       ├── reset_client.py
-│       └── status_client.py
+│   ├── services/
+│   │   ├── robot_server.py
+│   │   ├── reset_client.py
+│   │   └── status_client.py
+│   └── actions/
+│       ├── count_mission_server.py
+│       └── count_mission_client.py
 ├── package.xml
 └── setup.py
 ```
@@ -123,6 +145,7 @@ Centralised names for all topics and services. Import instead of hardcoding stri
 ```python
 from learning.constants import TOPIC_STATUS, TOPIC_COMMAND
 from learning.constants import SERVICE_RESET, SERVICE_GET_STATUS
+from learning.constants import ACTION_COUNT_MISSION
 ```
 
 | Constant | Value |
@@ -131,6 +154,7 @@ from learning.constants import SERVICE_RESET, SERVICE_GET_STATUS
 | `TOPIC_COMMAND` | `/learning/command` |
 | `SERVICE_RESET` | `/learning/reset` |
 | `SERVICE_GET_STATUS` | `/learning/get_status` |
+| `ACTION_COUNT_MISSION` | `/learning/count_mission` |
 
 ---
 
@@ -217,3 +241,53 @@ ros2 run learning services_reset_client false
 ros2 service call /learning/get_status std_srvs/srv/Trigger "{}"
 ros2 service call /learning/reset example_interfaces/srv/SetBool "{data: true}"
 ```
+
+---
+
+### Actions
+
+`count_mission_server` is a standalone node. Uses `example_interfaces/action/Fibonacci` as the action type. Accepts one goal at a time — new goals are rejected while the server is busy.
+
+#### /learning/count_mission
+
+**Type:** `example_interfaces/action/Fibonacci`
+
+| Field | Direction | Description |
+|---|---|---|
+| `order` (Goal) | client → server | Number of Fibonacci steps to compute |
+| `sequence` (Feedback) | server → client | Fibonacci sequence so far, published each step |
+| `sequence` (Result) | server → client | Full Fibonacci sequence on completion |
+
+**Behaviour:**
+- Computes Fibonacci sequence step by step, one step per 0.5s
+- Publishes feedback after each step
+- Accepts cancel at any time — stops on next iteration
+- Uses `MultiThreadedExecutor` + `ReentrantCallbackGroup` so cancel requests are processed during execution
+
+```bash
+# Run
+ros2 run learning actions_count_mission_server
+
+# Send a goal (order = number of steps)
+ros2 run learning actions_count_mission_client send 20
+
+# Cancel the active goal
+ros2 run learning actions_count_mission_client cancel
+
+# Inspect action interface
+ros2 interface show example_interfaces/action/Fibonacci
+
+# List active action servers
+ros2 action list
+
+# Show action server info
+ros2 action info /learning/count_mission
+
+# Send goal via CLI
+ros2 action send_goal /learning/count_mission example_interfaces/action/Fibonacci "{order: 10}"
+
+# Send goal with feedback output
+ros2 action send_goal --feedback /learning/count_mission example_interfaces/action/Fibonacci "{order: 10}"
+```
+
+> `constants.py` constant: `ACTION_COUNT_MISSION = '/learning/count_mission'`

@@ -31,6 +31,8 @@ setup(
             'services_robot_server = learning.services.robot_server:main',
             'services_reset_client = learning.services.reset_client:main',
             'services_status_client = learning.services.status_client:main',
+            'actions_count_mission_server = learning.actions.count_mission_server:main',
+            'actions_count_mission_client = learning.actions.count_mission_client:main',
         ],
     },
 )
