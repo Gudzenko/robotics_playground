@@ -28,6 +28,9 @@ setup(
             'topics_status_sub = learning.topics.status_subscriber:main',
             'topics_command_pub = learning.topics.command_publisher:main',
             'topics_command_sub = learning.topics.command_subscriber:main',
+            'services_robot_server = learning.services.robot_server:main',
+            'services_reset_client = learning.services.reset_client:main',
+            'services_status_client = learning.services.status_client:main',
         ],
     },
 )

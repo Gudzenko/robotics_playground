@@ -70,6 +70,24 @@ ros2 node list
 
 > Topics are only visible while at least one publisher or subscriber is running.
 
+### Services
+
+```bash
+# List all active services
+ros2 service list
+
+# Show service type
+ros2 service type /learning/reset
+
+# Show structure of a service type
+ros2 interface show example_interfaces/srv/SetBool
+ros2 interface show std_srvs/srv/Trigger
+
+# Call a service manually
+ros2 service call /learning/reset example_interfaces/srv/SetBool "{data: true}"
+ros2 service call /learning/get_status std_srvs/srv/Trigger "{}"
+```
+
 ---
 
 ## Package: learning
@@ -77,7 +95,7 @@ ros2 node list
 Educational package for learning ROS 2 concepts step by step.
 
 **Build type:** `ament_python`
-**Dependencies:** `rclpy`, `std_msgs`
+**Dependencies:** `rclpy`, `std_msgs`, `std_srvs`, `example_interfaces`
 
 ### Package structure
 
@@ -85,11 +103,15 @@ Educational package for learning ROS 2 concepts step by step.
 learning/
 ├── learning/
 │   ├── constants.py          # shared topic/service names
-│   └── topics/
-│       ├── status_publisher.py
-│       ├── status_subscriber.py
-│       ├── command_publisher.py
-│       └── command_subscriber.py
+│   ├── topics/
+│   │   ├── status_publisher.py
+│   │   ├── status_subscriber.py
+│   │   ├── command_publisher.py
+│   │   └── command_subscriber.py
+│   └── services/
+│       ├── robot_server.py
+│       ├── reset_client.py
+│       └── status_client.py
 ├── package.xml
 └── setup.py
 ```
@@ -100,12 +122,15 @@ Centralised names for all topics and services. Import instead of hardcoding stri
 
 ```python
 from learning.constants import TOPIC_STATUS, TOPIC_COMMAND
+from learning.constants import SERVICE_RESET, SERVICE_GET_STATUS
 ```
 
 | Constant | Value |
 |---|---|
 | `TOPIC_STATUS` | `/learning/status` |
 | `TOPIC_COMMAND` | `/learning/command` |
+| `SERVICE_RESET` | `/learning/reset` |
+| `SERVICE_GET_STATUS` | `/learning/get_status` |
 
 ---
 
@@ -154,4 +179,41 @@ ros2 topic echo /learning/command
 # Send manually
 ros2 topic pub /learning/command std_msgs/msg/String "{data: 'forward'}"
 ros2 topic pub --once /learning/command std_msgs/msg/String "{data: 'forward'}"
+```
+
+---
+
+### Services
+
+`robot_server` is a standalone node — tracks uptime and reset count internally, no external dependencies.
+
+#### /learning/reset
+
+**Type:** `example_interfaces/srv/SetBool`
+
+| `data` | Behaviour |
+|---|---|
+| `true` | Resets uptime and increments reset counter. Simulates a 2–6s delay. |
+| `false` | Skips reset, returns failure |
+
+#### /learning/get_status
+
+**Type:** `std_srvs/srv/Trigger`
+
+Returns current uptime (seconds since last reset) and total reset count.
+
+**Format:** `uptime=<value>s; resets=<value>`
+
+```bash
+# Run
+ros2 run learning services_robot_server
+
+# Clients
+ros2 run learning services_status_client
+ros2 run learning services_reset_client true
+ros2 run learning services_reset_client false
+
+# CLI
+ros2 service call /learning/get_status std_srvs/srv/Trigger "{}"
+ros2 service call /learning/reset example_interfaces/srv/SetBool "{data: true}"
 ```
