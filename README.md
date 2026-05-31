@@ -35,6 +35,37 @@ The VS Code integrated terminal sources `install/setup.bash` automatically on st
 
 ---
 
+## ROS 2 CLI reference
+
+### Topics
+
+```bash
+# List all active topics
+ros2 topic list
+
+# List with message types
+ros2 topic list -t
+
+# Show message type of a topic
+ros2 topic type /learning/status
+
+# Show publisher/subscriber count and type
+ros2 topic info /learning/status
+
+# Show structure of a message type
+ros2 interface show std_msgs/msg/String
+
+# Print incoming messages to terminal
+ros2 topic echo /learning/status
+
+# List all active nodes
+ros2 node list
+```
+
+> Topics are only visible while at least one publisher or subscriber is running.
+
+---
+
 ## Package: learning
 
 Educational package for learning ROS 2 concepts step by step.
