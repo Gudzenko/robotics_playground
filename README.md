@@ -107,6 +107,23 @@ ros2 action send_goal /learning/count_mission example_interfaces/action/Fibonacc
 ros2 action send_goal --feedback /learning/count_mission example_interfaces/action/Fibonacci "{order: 10}"
 ```
 
+### Parameters
+
+```bash
+# List parameters of a node
+ros2 param list /configurable_pub
+
+# Get a single parameter value
+ros2 param get /configurable_pub publish_rate
+
+# Set a parameter at runtime
+ros2 param set /configurable_pub publish_rate 3.0
+ros2 param set /configurable_pub robot_name robot_X
+
+# Dump all parameters to YAML
+ros2 param dump /configurable_pub
+```
+
 ---
 
 ## Package: learning
@@ -131,9 +148,12 @@ learning/
 │   │   ├── robot_server.py
 │   │   ├── reset_client.py
 │   │   └── status_client.py
-│   └── actions/
-│       ├── count_mission_server.py
-│       └── count_mission_client.py
+│   ├── actions/
+│   │   ├── count_mission_server.py
+│   │   └── count_mission_client.py
+│   └── parameters/
+│       ├── configurable_pub.py
+│       └── param_client.py
 ├── package.xml
 └── setup.py
 ```
@@ -291,3 +311,51 @@ ros2 action send_goal --feedback /learning/count_mission example_interfaces/acti
 ```
 
 > `constants.py` constant: `ACTION_COUNT_MISSION = '/learning/count_mission'`
+
+---
+
+### Parameters
+
+`configurable_pub` is a standalone node. All parameters can be changed at runtime without restarting.
+
+#### Parameters of `configurable_pub`
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `publish_rate` | `double` | `1.0` | Publish frequency in Hz |
+| `robot_name` | `string` | `robot_1` | Robot name included in every message |
+| `max_speed` | `double` | `1.0` | Upper bound for random speed value |
+
+**Behaviour:**
+- Publishes to `/learning/status` at `publish_rate` Hz
+- Changing `publish_rate` at runtime recreates the timer immediately
+- Rejects `publish_rate <= 0`
+- Uses `add_on_set_parameters_callback` to react to all parameter changes
+
+```bash
+# Run with default parameters
+ros2 run learning parameters_configurable_pub
+
+# Run with custom parameters
+ros2 run learning parameters_configurable_pub --ros-args -p publish_rate:=2.0 -p robot_name:=robot_X
+
+# Observe publish frequency
+ros2 topic hz /learning/status
+
+# Change publish_rate at runtime — observe change in ros2 topic hz
+ros2 param set /configurable_pub publish_rate 5.0
+ros2 param set /configurable_pub publish_rate 0.2
+
+# Change other parameters
+ros2 param set /configurable_pub robot_name robot_Y
+ros2 param set /configurable_pub max_speed 0.3
+
+# Dump all parameters
+ros2 param dump /configurable_pub
+
+# Programmatic client — read parameters from a running node
+ros2 run learning parameters_param_client get
+
+# Programmatic client — set publish_rate
+ros2 run learning parameters_param_client set_rate 3.0
+```
