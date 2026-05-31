@@ -6,6 +6,11 @@
     "python.analysis.extraPaths": [
         "/opt/ros/jazzy/lib/python3.12/site-packages"
     ],
+    "files.watcherExclude": {
+        "**/robotics_playground_ws/build/**": true,
+        "**/robotics_playground_ws/install/**": true,
+        "**/robotics_playground_ws/log/**": true
+    },
     "terminal.integrated.env.linux": {
         "COLCON_PREFIX_PATH": "${workspaceFolder}/robotics_playground_ws/install"
     },

@@ -24,6 +24,10 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'topics_status_pub = learning.topics.status_publisher:main',
+            'topics_status_sub = learning.topics.status_subscriber:main',
+            'topics_command_pub = learning.topics.command_publisher:main',
+            'topics_command_sub = learning.topics.command_subscriber:main',
         ],
     },
 )
