@@ -124,6 +124,20 @@ ros2 param set /configurable_pub robot_name robot_X
 ros2 param dump /configurable_pub
 ```
 
+### Launch files
+
+```bash
+# Show available arguments of a launch file
+ros2 launch learning full_system.launch.py --show-args
+
+# Run a launch file
+ros2 launch learning topics.launch.py
+ros2 launch learning full_system.launch.py
+
+# Run with arguments
+ros2 launch learning full_system.launch.py publish_rate:=3.0
+```
+
 ---
 
 ## Package: learning
@@ -154,6 +168,9 @@ learning/
 │   └── parameters/
 │       ├── configurable_pub.py
 │       └── param_client.py
+├── launch/
+│   ├── topics.launch.py
+│   └── full_system.launch.py
 ├── package.xml
 └── setup.py
 ```
@@ -311,6 +328,34 @@ ros2 action send_goal --feedback /learning/count_mission example_interfaces/acti
 ```
 
 > `constants.py` constant: `ACTION_COUNT_MISSION = '/learning/count_mission'`
+
+---
+
+### Launch files
+
+| File | Description |
+|---|---|
+| `topics.launch.py` | Launches `topics_status_pub` + `topics_status_sub` |
+| `full_system.launch.py` | Launches full system: topics, services, actions, parameters |
+
+**`full_system.launch.py` arguments:**
+
+| Argument | Default | Description |
+|---|---|---|
+| `publish_rate` | `1.0` | Publish rate for `configurable_pub` in Hz |
+
+**Behaviour:**
+- `full_system.launch.py` includes `topics.launch.py` via `IncludeLaunchDescription`
+- `LogInfo` prints a message at startup before any node is launched
+- `publish_rate` argument is passed as a parameter to `configurable_pub` at startup
+- Launch files are installed to `share/learning/launch/` — rebuild required when adding new files
+
+```bash
+ros2 launch learning topics.launch.py
+ros2 launch learning full_system.launch.py
+ros2 launch learning full_system.launch.py publish_rate:=3.0
+ros2 launch learning full_system.launch.py --show-args
+```
 
 ---
 
