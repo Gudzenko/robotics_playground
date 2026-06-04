@@ -138,6 +138,13 @@ ros2 launch learning full_system.launch.py
 ros2 launch learning full_system.launch.py publish_rate:=3.0
 ```
 
+### QoS
+
+```bash
+# Show QoS profile of all publishers and subscribers on a topic
+ros2 topic info /learning/qos --verbose
+```
+
 ### Lifecycle
 
 ```bash
@@ -185,8 +192,11 @@ learning/
 │   ├── parameters/
 │   │   ├── configurable_pub.py
 │   │   └── param_client.py
-│   └── lifecycle/
-│       └── managed_sensor.py
+│   ├── lifecycle/
+│   │   └── managed_sensor.py
+│   └── qos/
+│       ├── qos_publisher.py
+│       └── qos_subscriber.py
 ├── launch/
 │   ├── topics.launch.py
 │   └── full_system.launch.py
@@ -212,6 +222,7 @@ from learning.constants import ACTION_COUNT_MISSION
 | `SERVICE_GET_STATUS` | `/learning/get_status` |
 | `ACTION_COUNT_MISSION` | `/learning/count_mission` |
 | `TOPIC_SENSOR` | `/learning/sensor` |
+| `TOPIC_QOS` | `/learning/qos` |
 
 ---
 
@@ -478,3 +489,132 @@ ros2 run learning parameters_param_client get
 # Programmatic client — set publish_rate
 ros2 run learning parameters_param_client set_rate 3.0
 ```
+
+---
+
+### QoS
+
+QoS (Quality of Service) controls how the DDS middleware delivers messages. Each publisher and subscriber has a full `QoSProfile` specifying delivery guarantees. Incompatible profiles silently prevent a connection — no exception, just a warning and no data flow.
+
+---
+
+#### Policies
+
+| Policy | Option | Description |
+|---|---|---|
+| `Reliability` | `RELIABLE` | Every message is retransmitted until acknowledged. Guaranteed delivery. |
+| | `BEST_EFFORT` | Send-and-forget. No retransmission. Lower overhead — suited for sensors. |
+| `History` | `KEEP_LAST` | Queue stores the N most recent messages (N = `depth`). Default. |
+| | `KEEP_ALL` | Queue stores all messages until consumed. Limited by system memory. |
+| `Depth` | integer | Size of the `KEEP_LAST` queue. Ignored with `KEEP_ALL`. Default: 10. |
+| `Durability` | `VOLATILE` | Subscriber receives only messages published after it connects. Default. |
+| | `TRANSIENT_LOCAL` | Publisher caches messages — a late subscriber receives previously published messages immediately ("latching"). |
+| `Deadline` | duration | Maximum expected gap between messages. Violation fires an event on both sides. |
+| `Liveliness` | `AUTOMATIC` | DDS marks the node as alive as long as any message was recently sent. |
+| | `MANUAL_BY_TOPIC` | Node must explicitly call `assert_liveliness()` on each topic or be considered dead. |
+| `Lifespan` | duration | Messages older than this are dropped from the publisher queue before delivery. |
+
+---
+
+#### Preset profiles
+
+ROS 2 ships with predefined `QoSPresetProfiles` that cover common use cases. Use them instead of building `QoSProfile` manually when defaults are appropriate.
+
+```python
+from rclpy.qos import QoSPresetProfiles
+
+qos = QoSPresetProfiles.SENSOR_DATA.value
+self.create_publisher(String, '/topic', qos)
+```
+
+| Profile | Reliability | History | Depth | Typical use |
+|---|---|---|---|---|
+| `DEFAULT` | RELIABLE | KEEP_LAST | 10 | General-purpose topics |
+| `SENSOR_DATA` | BEST_EFFORT | KEEP_LAST | 5 | High-rate sensor streams (lidar, camera) |
+| `PARAMETERS` | RELIABLE | KEEP_LAST | 1000 | ROS 2 parameter infrastructure |
+| `SERVICES_DEFAULT` | RELIABLE | KEEP_LAST | 10 | Service server/client |
+| `PARAMETER_EVENTS` | RELIABLE | KEEP_LAST | 1000 | `/parameter_events` topic |
+| `SYSTEM_DEFAULT` | system | system | system | Defers all choices to the DDS middleware |
+
+**Shorthand integer** — passing a plain integer to `create_publisher` / `create_subscription` is equivalent to `DEFAULT` with that depth:
+
+```python
+# These two are identical
+self.create_publisher(String, '/topic', 10)
+self.create_publisher(String, '/topic', QoSPresetProfiles.DEFAULT.value)  # depth overridden to 10
+```
+
+---
+
+#### Compatibility rules
+
+The subscriber's QoS must be no more demanding than the publisher's. Violation logs a warning and blocks the connection.
+
+| Publisher | Subscriber | Compatible? |
+|---|---|---|
+| `RELIABLE` | `RELIABLE` | ✅ |
+| `RELIABLE` | `BEST_EFFORT` | ✅ subscriber asks for less |
+| `BEST_EFFORT` | `BEST_EFFORT` | ✅ |
+| `BEST_EFFORT` | `RELIABLE` | ❌ subscriber demands more than offered |
+
+Same logic applies to Durability: `TRANSIENT_LOCAL` publisher + `VOLATILE` subscriber = ✅, but `VOLATILE` publisher + `TRANSIENT_LOCAL` subscriber = ❌.
+
+Warning message when incompatible:
+```
+New publisher discovered on topic '...', offering incompatible QoS. Last incompatible policy: RELIABILITY
+```
+
+---
+
+#### depth and message drops
+
+With `KEEP_LAST`, when the callback is slower than the publish rate, messages accumulate in the queue. Once full, the oldest is dropped to make room for the newest.
+
+At 5 Hz publish rate with a 2 s callback delay:
+
+| depth | Behaviour |
+|---|---|
+| `1` | Each 2 s callback → 10 new messages published → only the newest 1 survives → drops 9/10 → jumps of ~10 in sequence numbers |
+| `10` | First callback exits before overflow → second starts with 9 queued + 10 new = 19 → keeps newest 10 → drops 9 → same jump pattern from second step onward |
+
+`depth=10` helps when the subscriber is only briefly slow or occasionally bursty. It does not prevent drops if the consumer is structurally slower than the producer.
+
+---
+
+#### What was not tested
+
+| Policy | How to demonstrate |
+|---|---|
+| `TRANSIENT_LOCAL` durability | Start subscriber after publisher — subscriber still receives past messages |
+| `Deadline` | Set a deadline shorter than publish interval — both sides receive `on_deadline_missed` event |
+| `Liveliness` | Use `MANUAL_BY_TOPIC` — node must call `assert_liveliness()` periodically or be marked dead |
+| `Lifespan` | Set a short lifespan — messages sitting in the queue too long are discarded before delivery |
+
+---
+
+#### Files
+
+| File | Description |
+|---|---|
+| `learning/qos/qos_publisher.py` | Publishes to `/learning/qos` at 5 Hz with configurable reliability |
+| `learning/qos/qos_subscriber.py` | Subscribes with configurable reliability, depth, and callback delay |
+
+```bash
+# Incompatible QoS: BEST_EFFORT publisher + RELIABLE subscriber → no connection, warning logged
+ros2 run learning qos_publisher best_effort
+ros2 run learning qos_subscriber reliable
+
+# Compatible QoS: both RELIABLE
+ros2 run learning qos_publisher reliable
+ros2 run learning qos_subscriber reliable
+
+# depth=1 vs depth=10 at 5 Hz with 2 s slow callback
+ros2 run learning qos_publisher reliable
+ros2 run learning qos_subscriber reliable 1 2.0   # drops most messages
+ros2 run learning qos_subscriber reliable 10 2.0  # queue overflows after first step
+
+# Inspect live QoS profiles on a topic
+ros2 topic info /learning/qos --verbose
+```
+
+> `constants.py` constant: `TOPIC_QOS = '/learning/qos'`

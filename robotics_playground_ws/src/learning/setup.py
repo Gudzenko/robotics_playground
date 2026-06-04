@@ -39,6 +39,8 @@ setup(
             'parameters_configurable_pub = learning.parameters.configurable_pub:main',
             'parameters_param_client = learning.parameters.param_client:main',
             'lifecycle_managed_sensor = learning.lifecycle.managed_sensor:main',
+            'qos_publisher = learning.qos.qos_publisher:main',
+            'qos_subscriber = learning.qos.qos_subscriber:main',
         ],
     },
 )
