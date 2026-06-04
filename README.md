@@ -618,3 +618,105 @@ ros2 topic info /learning/qos --verbose
 ```
 
 > `constants.py` constant: `TOPIC_QOS = '/learning/qos'`
+
+---
+
+### Rosbag
+
+Rosbag records topic messages with timestamps to a file and replays them later. During playback, rosbag publishes messages back to the same topics at the same intervals — subscribers and algorithms cannot distinguish a recording from a live system.
+
+Only **topics** can be recorded. Services and actions are request/response — they have no continuous message stream.
+
+Any message type can be recorded: `std_msgs`, `sensor_msgs`, `nav_msgs`, custom `.msg` types, etc.
+
+**Storage format:** SQLite (`.db3`) + `metadata.yaml` in a single folder. Messages are serialized in CDR — the standard DDS binary format.
+
+**Typical workflow:** record sensor topics from real hardware → debug an algorithm offline by replaying the same data deterministically.
+
+---
+
+#### Recording
+
+```bash
+# Record a single topic (--topics is the recommended syntax)
+ros2 bag record --topics /learning/status
+
+# Record multiple topics
+ros2 bag record --topics /learning/status /learning/sensor
+
+# Record all active topics
+ros2 bag record -a
+
+# Specify output folder name explicitly
+ros2 bag record --topics /learning/status -o my_recording
+
+# Pause / resume during recording: SPACE
+```
+
+---
+
+#### Inspecting a recording
+
+```bash
+# Show topics, types, duration, message counts
+ros2 bag info rosbag2_2026_06_04-19_05_47/
+
+# Example output:
+# Files:             rosbag2_2026_06_04-19_05_47_0.db3
+# Duration:          14.999s
+# Start:             Jun  4 2026 19:05:47.476
+# End:               Jun  4 2026 19:05:02.476
+# Messages:          15
+# Topic information: Topic: /learning/status | Type: std_msgs/msg/String | Count: 15 | QoS: ...
+```
+
+---
+
+#### Playback
+
+```bash
+# Play back a recording (publishes to the same topics)
+ros2 bag play rosbag2_2026_06_04-19_05_47/
+
+# Play at a different speed (0.5 = half speed, 2.0 = double speed)
+ros2 bag play rosbag2_2026_06_04-19_05_47/ --rate 0.5
+
+# Play only selected topics
+ros2 bag play rosbag2_2026_06_04-19_05_47/ --topics /learning/status
+
+# Loop playback continuously
+ros2 bag play rosbag2_2026_06_04-19_05_47/ --loop
+
+# Play a time slice (seconds from the start of the recording)
+ros2 bag play rosbag2_2026_06_04-19_05_47/ --start-offset 5.0 --duration 10.0
+```
+
+---
+
+#### Example session
+
+Terminal 1 — start publisher:
+```bash
+ros2 run learning topics_status_pub
+```
+
+Terminal 2 — record:
+```bash
+cd ~ && ros2 bag record --topics /learning/status
+# Wait 10–15 seconds, then Ctrl+C in both terminals
+```
+
+Terminal 2 — inspect the recording:
+```bash
+ros2 bag info rosbag2_*/
+```
+
+Terminal 2 — play back (no publisher needed):
+```bash
+ros2 bag play rosbag2_*/
+```
+
+Terminal 3 — observe:
+```bash
+ros2 topic echo /learning/status
+```
