@@ -8,3 +8,9 @@ SERVICE_GET_STATUS = '/learning/get_status'
 ACTION_COUNT_MISSION = '/learning/count_mission'
 
 TOPIC_QOS = '/learning/qos'
+
+TOPIC_ROBOT_STATUS = '/learning/robot_status'
+
+SERVICE_SET_PATROL_POINTS = '/learning/set_patrol_points'
+
+ACTION_PATROL = '/learning/patrol'

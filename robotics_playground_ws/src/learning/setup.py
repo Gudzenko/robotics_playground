@@ -43,6 +43,12 @@ setup(
             'qos_subscriber = learning.qos.qos_subscriber:main',
             'executors_blocking_demo = learning.executors.blocking_demo:main',
             'diagnostics_robot_monitor = learning.diagnostics.robot_monitor:main',
+            'ci_robot_status_pub = learning.custom_interfaces.robot_status_pub:main',
+            'ci_robot_status_sub = learning.custom_interfaces.robot_status_sub:main',
+            'ci_patrol_points_server = learning.custom_interfaces.patrol_points_server:main',
+            'ci_set_patrol_points = learning.custom_interfaces.patrol_points_client:main',
+            'ci_patrol_server = learning.custom_interfaces.patrol_action_server:main',
+            'ci_patrol_client = learning.custom_interfaces.patrol_action_client:main',
         ],
     },
 )

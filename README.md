@@ -199,8 +199,15 @@ learning/
 │   │   └── qos_subscriber.py
 │   ├── executors/
 │   │   └── blocking_demo.py
-│   └── diagnostics/
-│       └── robot_monitor.py
+│   ├── diagnostics/
+│   │   └── robot_monitor.py
+│   └── custom_interfaces/
+│       ├── robot_status_pub.py
+│       ├── robot_status_sub.py
+│       ├── patrol_points_server.py
+│       ├── patrol_points_client.py
+│       ├── patrol_action_server.py
+│       └── patrol_action_client.py
 ├── launch/
 │   ├── topics.launch.py
 │   └── full_system.launch.py
@@ -896,3 +903,152 @@ status:
   - key: update_rate_hz
     value: '10.0'
 ```
+
+---
+
+### Custom interfaces
+
+ROS 2 does not allow defining custom `.msg`, `.srv`, or `.action` types inside a Python package (`ament_python`). A dedicated `ament_cmake` package is required — it runs the code generator that produces Python and C++ classes from the interface definitions. Once built, the generated types are imported like any other package:
+
+```python
+from learning_interfaces.msg import RobotStatus
+from learning_interfaces.srv import SetPatrolPoints
+from learning_interfaces.action import Patrol
+```
+
+**Build order:** `learning_interfaces` must be built and the workspace sourced before building `learning`.
+
+```bash
+colcon build --symlink-install --packages-select learning_interfaces
+source install/setup.bash
+colcon build --symlink-install --packages-select learning
+```
+
+---
+
+#### Package: learning_interfaces
+
+```
+learning_interfaces/
+├── msg/
+│   └── RobotStatus.msg
+├── srv/
+│   └── SetPatrolPoints.srv
+├── action/
+│   └── Patrol.action
+├── CMakeLists.txt
+└── package.xml
+```
+
+---
+
+#### RobotStatus.msg
+
+Extended robot status with typed fields instead of a formatted string.
+
+```
+float32 battery_percent
+float32 speed
+string mode
+bool is_healthy
+```
+
+| Field | Description |
+|---|---|
+| `battery_percent` | Battery level 0.0–100.0 |
+| `speed` | Current speed 0.0–1.0 |
+| `mode` | Operating mode: `manual`, `auto`, `idle` |
+| `is_healthy` | False when battery < 10% |
+
+```bash
+# Run
+ros2 run learning ci_robot_status_pub
+ros2 run learning ci_robot_status_sub
+
+# Inspect
+ros2 interface show learning_interfaces/msg/RobotStatus
+ros2 topic echo /learning/robot_status
+```
+
+> `constants.py` constant: `TOPIC_ROBOT_STATUS = '/learning/robot_status'`
+
+---
+
+#### SetPatrolPoints.srv
+
+Sets the patrol route on the server. The stored points are used by the `Patrol` action.
+
+```
+# Request
+geometry_msgs/Point[] points
+---
+# Response
+bool success
+string message
+int32 points_accepted
+```
+
+Server validates that at least 2 points are provided.
+
+```bash
+# Run server
+ros2 run learning ci_patrol_points_server
+
+# Send patrol points (format: x,y or x,y,z)
+ros2 run learning ci_set_patrol_points 0,0 1,0 1,1 0,1
+
+# Test validation — fewer than 2 points → rejected
+ros2 run learning ci_set_patrol_points 0,0
+
+# Inspect
+ros2 interface show learning_interfaces/srv/SetPatrolPoints
+ros2 service call /learning/set_patrol_points learning_interfaces/srv/SetPatrolPoints \
+  "{points: [{x: 0.0, y: 0.0, z: 0.0}, {x: 1.0, y: 0.0, z: 0.0}]}"
+```
+
+> `constants.py` constant: `SERVICE_SET_PATROL_POINTS = '/learning/set_patrol_points'`
+
+---
+
+#### Patrol.action
+
+Executes a patrol mission: visits each point in sequence, repeats for the specified number of loops. Supports cancel at any time.
+
+```
+# Goal
+geometry_msgs/Point[] points
+int32 loops
+---
+# Result
+int32 loops_completed
+string stop_reason
+---
+# Feedback
+int32 current_loop
+int32 current_point
+float32 progress_percent
+```
+
+**Behaviour:**
+- Simulates movement to each point with a 1 s delay per point
+- Publishes feedback after each point with loop number, point index, and overall progress
+- Accepts cancel at any time — stops on the next point check
+- `stop_reason`: `completed` or `cancelled`
+- Uses `MultiThreadedExecutor` + `ReentrantCallbackGroup` so cancel is processed during execution
+
+```bash
+# Run server
+ros2 run learning ci_patrol_server
+
+# Run patrol: 4 points, 2 loops
+ros2 run learning ci_patrol_client 0,0 1,0 1,1 0,1 loops=2
+
+# Press Ctrl+C during execution → client sends cancel → server stops, reports loops_completed
+
+# Inspect
+ros2 interface show learning_interfaces/action/Patrol
+ros2 action list
+ros2 action info /learning/patrol
+```
+
+> `constants.py` constant: `ACTION_PATROL = '/learning/patrol'`

@@ -13,6 +13,7 @@
   <depend>example_interfaces</depend>
   <depend>action_msgs</depend>
   <depend>diagnostic_updater</depend>
+  <depend>learning_interfaces</depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

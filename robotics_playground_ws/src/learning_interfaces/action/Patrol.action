@@ -1,0 +1,9 @@
+geometry_msgs/Point[] points
+int32 loops
+---
+int32 loops_completed
+string stop_reason
+---
+int32 current_loop
+int32 current_point
+float32 progress_percent
