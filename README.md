@@ -138,6 +138,23 @@ ros2 launch learning full_system.launch.py
 ros2 launch learning full_system.launch.py publish_rate:=3.0
 ```
 
+### Lifecycle
+
+```bash
+# Get current state of a lifecycle node
+ros2 lifecycle get /managed_sensor
+
+# List available transitions from current state
+ros2 lifecycle list /managed_sensor
+
+# Trigger transitions
+ros2 lifecycle set /managed_sensor configure
+ros2 lifecycle set /managed_sensor activate
+ros2 lifecycle set /managed_sensor deactivate
+ros2 lifecycle set /managed_sensor cleanup
+ros2 lifecycle set /managed_sensor shutdown
+```
+
 ---
 
 ## Package: learning
@@ -165,9 +182,11 @@ learning/
 │   ├── actions/
 │   │   ├── count_mission_server.py
 │   │   └── count_mission_client.py
-│   └── parameters/
-│       ├── configurable_pub.py
-│       └── param_client.py
+│   ├── parameters/
+│   │   ├── configurable_pub.py
+│   │   └── param_client.py
+│   └── lifecycle/
+│       └── managed_sensor.py
 ├── launch/
 │   ├── topics.launch.py
 │   └── full_system.launch.py
@@ -192,6 +211,7 @@ from learning.constants import ACTION_COUNT_MISSION
 | `SERVICE_RESET` | `/learning/reset` |
 | `SERVICE_GET_STATUS` | `/learning/get_status` |
 | `ACTION_COUNT_MISSION` | `/learning/count_mission` |
+| `TOPIC_SENSOR` | `/learning/sensor` |
 
 ---
 
@@ -356,6 +376,60 @@ ros2 launch learning full_system.launch.py
 ros2 launch learning full_system.launch.py publish_rate:=3.0
 ros2 launch learning full_system.launch.py --show-args
 ```
+
+---
+
+### Lifecycle
+
+`managed_sensor` simulates a temperature sensor with a managed lifecycle. Publisher and timer are created/destroyed on transitions — not in `__init__`.
+
+**States:**
+
+| State | Description |
+|---|---|
+| `Unconfigured` | node started, no resources allocated |
+| `Inactive` | publisher created, timer not running |
+| `Active` | publishing to `/learning/sensor` every 1s |
+| `Finalized` | node shut down |
+
+**Transitions and callbacks:**
+
+| Transition | Callback | Action |
+|---|---|---|
+| `configure` | `on_configure` | creates lifecycle publisher, resets temperature |
+| `activate` | `on_activate` | activates publisher, starts timer |
+| `deactivate` | `on_deactivate` | stops and destroys timer, deactivates publisher |
+| `cleanup` | `on_cleanup` | destroys publisher |
+| `shutdown` | `on_shutdown` | logs shutdown |
+
+```bash
+# Run
+ros2 run learning lifecycle_managed_sensor
+
+# Configure → Inactive
+ros2 lifecycle set /managed_sensor configure
+
+# Activate → Active (starts publishing)
+ros2 lifecycle set /managed_sensor activate
+ros2 topic echo /learning/sensor
+
+# Deactivate → Inactive (stops publishing, keeps publisher)
+ros2 lifecycle set /managed_sensor deactivate
+
+# Reactivate
+ros2 lifecycle set /managed_sensor activate
+
+# Full shutdown sequence
+ros2 lifecycle set /managed_sensor deactivate
+ros2 lifecycle set /managed_sensor cleanup
+ros2 lifecycle set /managed_sensor shutdown
+
+# Inspect
+ros2 lifecycle get /managed_sensor
+ros2 lifecycle list /managed_sensor
+```
+
+> `constants.py` constant: `TOPIC_SENSOR = '/learning/sensor'`
 
 ---
 

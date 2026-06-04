@@ -1,5 +1,6 @@
 TOPIC_STATUS = '/learning/status'
 TOPIC_COMMAND = '/learning/command'
+TOPIC_SENSOR = '/learning/sensor'
 
 SERVICE_RESET = '/learning/reset'
 SERVICE_GET_STATUS = '/learning/get_status'

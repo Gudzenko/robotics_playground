@@ -38,6 +38,7 @@ setup(
             'actions_count_mission_client = learning.actions.count_mission_client:main',
             'parameters_configurable_pub = learning.parameters.configurable_pub:main',
             'parameters_param_client = learning.parameters.param_client:main',
+            'lifecycle_managed_sensor = learning.lifecycle.managed_sensor:main',
         ],
     },
 )
