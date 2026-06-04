@@ -720,3 +720,89 @@ Terminal 3 — observe:
 ```bash
 ros2 topic echo /learning/status
 ```
+
+---
+
+### Executors
+
+An executor is the event loop inside `rclpy`. When you call `rclpy.spin(node)`, a `SingleThreadedExecutor` is created implicitly. The executor polls all callbacks (timers, subscriptions, services, actions) and invokes those that have pending data.
+
+---
+
+#### Executor types
+
+| Executor | Threads | Description |
+|---|---|---|
+| `SingleThreadedExecutor` | 1 | Callbacks run strictly one at a time. Default for `rclpy.spin()`. |
+| `MultiThreadedExecutor` | N (configurable) | Callbacks can run in parallel across a thread pool. |
+| `StaticSingleThreadedExecutor` | 1 | Like single-threaded, but callback list is fixed at startup — lower overhead for large numbers of nodes/topics. |
+
+---
+
+#### Callback groups
+
+Callback groups control which callbacks inside a `MultiThreadedExecutor` are allowed to run in parallel.
+
+| Group | Behaviour |
+|---|---|
+| `MutuallyExclusiveCallbackGroup` | Callbacks in this group never run in parallel with each other. Default. |
+| `ReentrantCallbackGroup` | Callbacks in this group can run simultaneously, including multiple concurrent invocations of the same callback. |
+
+A `MultiThreadedExecutor` without `ReentrantCallbackGroup` still serialises callbacks — the group is what unlocks actual parallelism.
+
+---
+
+#### Timers and missed firings
+
+In ROS 2, timer callbacks do **not** accumulate. If an executor is blocked and a timer fires multiple times, only one pending invocation is queued — the rest are discarded. After unblocking, the timer fires exactly once regardless of how many periods were missed.
+
+---
+
+#### File
+
+| File | Description |
+|---|---|
+| `learning/executors/blocking_demo.py` | Two timers in one node: `fast` (0.5 s) and `slow` (2 s, sleeps 3 s). Run with `single` or `multi` mode. |
+
+---
+
+#### Demo
+
+```bash
+# single — slow blocks fast for 3 s, fast fires only once after slow finishes
+ros2 run learning executors_blocking_demo single
+
+# multi — fast ticks every 0.5 s uninterrupted while slow runs in parallel
+ros2 run learning executors_blocking_demo multi
+```
+
+**single** expected output pattern:
+```
+[fast #1] tick
+[fast #2] tick
+[fast #3] tick
+[fast #4] tick
+[slow #1] started — sleeping 3s
+                              ← 3 second pause, fast is silent
+[slow #1] done
+[fast #5] tick                ← only ONE tick, not a burst — missed firings are discarded
+[slow #2] started — sleeping 3s
+```
+
+**multi** expected output pattern:
+```
+[fast #1] tick
+[fast #2] tick
+[fast #3] tick
+[fast #4] tick
+[slow #1] started — sleeping 3s   ← runs in parallel, does not block fast
+[fast #5] tick
+[fast #6] tick
+[fast #7] tick
+[fast #8] tick
+[fast #9] tick
+[fast #10] tick
+[slow #1] done                    ← fast continued throughout the 3 s sleep
+```
+
+> `ReentrantCallbackGroup` is also used in `actions/count_mission_server.py` — it allows cancel requests to be processed while the goal execution is running inside a `time.sleep()` loop.

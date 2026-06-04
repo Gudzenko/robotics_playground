@@ -41,6 +41,7 @@ setup(
             'lifecycle_managed_sensor = learning.lifecycle.managed_sensor:main',
             'qos_publisher = learning.qos.qos_publisher:main',
             'qos_subscriber = learning.qos.qos_subscriber:main',
+            'executors_blocking_demo = learning.executors.blocking_demo:main',
         ],
     },
 )
