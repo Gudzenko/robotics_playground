@@ -194,9 +194,13 @@ learning/
 │   │   └── param_client.py
 │   ├── lifecycle/
 │   │   └── managed_sensor.py
-│   └── qos/
-│       ├── qos_publisher.py
-│       └── qos_subscriber.py
+│   ├── qos/
+│   │   ├── qos_publisher.py
+│   │   └── qos_subscriber.py
+│   ├── executors/
+│   │   └── blocking_demo.py
+│   └── diagnostics/
+│       └── robot_monitor.py
 ├── launch/
 │   ├── topics.launch.py
 │   └── full_system.launch.py
@@ -806,3 +810,89 @@ ros2 run learning executors_blocking_demo multi
 ```
 
 > `ReentrantCallbackGroup` is also used in `actions/count_mission_server.py` — it allows cancel requests to be processed while the goal execution is running inside a `time.sleep()` loop.
+
+---
+
+### Diagnostics
+
+The diagnostics system provides structured component health reporting. Instead of logging errors to the console, a node publishes `DiagnosticArray` messages to `/diagnostics`. Each message contains one or more `DiagnosticStatus` entries — one per monitored component.
+
+```
+Node → DiagnosticUpdater → /diagnostics (DiagnosticArray)
+```
+
+A `DiagnosticUpdater` manages a list of check functions. It calls them at a fixed rate (1 Hz by default), collects the results, and publishes them in a single message. Each check function receives a `DiagnosticStatusWrapper`, sets a level and a message, and can attach arbitrary key-value data.
+
+**Status levels:**
+
+| Level | Value | Meaning |
+|---|---|---|
+| `OK` | 0 | Component is operating normally |
+| `WARN` | 1 | Degraded but functional |
+| `ERROR` | 2 | Component has failed or is out of range |
+| `STALE` | 3 | No data received recently |
+
+---
+
+#### File
+
+| File | Description |
+|---|---|
+| `learning/diagnostics/robot_monitor.py` | Monitors Battery, Motor, and Sensor — publishes all three statuses to `/diagnostics` |
+
+**Monitored components:**
+
+| Component | Trigger | Levels |
+|---|---|---|
+| `Battery` | Drops 0.5–1.5% per second | OK → WARN (< 20%) → ERROR (< 5%) |
+| `Motor` | Overheats every 30 s, recovers after 5 s | OK → WARN → OK |
+| `Sensor` | Always healthy, exposes update count | OK |
+
+---
+
+#### Running
+
+```bash
+ros2 run learning diagnostics_robot_monitor
+```
+
+Observe raw output:
+```bash
+ros2 topic echo /diagnostics
+```
+
+Inspect a single field:
+```bash
+ros2 topic echo /diagnostics --field status[0].message
+```
+
+---
+
+#### Example output
+
+```
+status:
+- level: 0          # OK
+  name: 'robot_monitor: Battery'
+  message: Battery nominal
+  hardware_id: learning_robot
+  values:
+  - key: voltage_percent
+    value: '87.3'
+- level: 1          # WARN
+  name: 'robot_monitor: Motor'
+  message: Motor overheated — cooling down
+  hardware_id: learning_robot
+  values:
+  - key: overheated
+    value: 'True'
+- level: 0          # OK
+  name: 'robot_monitor: Sensor'
+  message: Sensor operating normally
+  hardware_id: learning_robot
+  values:
+  - key: update_count
+    value: '42'
+  - key: update_rate_hz
+    value: '10.0'
+```

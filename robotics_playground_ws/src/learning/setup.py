@@ -42,6 +42,7 @@ setup(
             'qos_publisher = learning.qos.qos_publisher:main',
             'qos_subscriber = learning.qos.qos_subscriber:main',
             'executors_blocking_demo = learning.executors.blocking_demo:main',
+            'diagnostics_robot_monitor = learning.diagnostics.robot_monitor:main',
         ],
     },
 )
