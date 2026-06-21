@@ -1,18 +1,18 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:macro name="cargo_bot_base">
-    <link name="base_footprint" />
+  <xacro:macro name="cargo_bot_base" params="geometry">
+    <link name="${geometry.frames.base_footprint}" />
 
     <joint name="base_footprint_joint" type="fixed">
-      <parent link="base_footprint" />
-      <child link="base_link" />
-      <origin xyz="0 0 0.23" rpy="0 0 0" />
+      <parent link="${geometry.frames.base_footprint}" />
+      <child link="${geometry.frames.base_link}" />
+      <origin xyz="0 0 ${geometry.base.base_link_z}" rpy="0 0 0" />
     </joint>
 
-    <link name="base_link" />
+    <link name="${geometry.frames.base_link}" />
 
     <joint name="chassis_joint" type="fixed">
-      <parent link="base_link" />
+      <parent link="${geometry.frames.base_link}" />
       <child link="chassis_link" />
       <origin xyz="0 0 0" rpy="0 0 0" />
     </joint>
@@ -21,23 +21,23 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <box size="1.65 1.0 0.28" />
+          <box size="${geometry.chassis.length} ${geometry.chassis.width} ${geometry.chassis.height}" />
         </geometry>
         <material name="chassis_dark" />
       </visual>
     </link>
 
     <joint name="cargo_deck_joint" type="fixed">
-      <parent link="base_link" />
+      <parent link="${geometry.frames.base_link}" />
       <child link="cargo_deck_link" />
-      <origin xyz="-0.33 0 0.165" rpy="0 0 0" />
+      <origin xyz="${geometry.cargo_deck.x} ${geometry.cargo_deck.y} ${geometry.cargo_deck.z}" rpy="0 0 0" />
     </joint>
 
     <link name="cargo_deck_link">
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <box size="0.92 0.82 0.05" />
+          <box size="${geometry.cargo_deck.length} ${geometry.cargo_deck.width} ${geometry.cargo_deck.height}" />
         </geometry>
         <material name="cargo_deck_blue" />
       </visual>

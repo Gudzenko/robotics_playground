@@ -1,0 +1,41 @@
+frames:
+  base_footprint: base_footprint
+  base_link: base_link
+
+base:
+  base_link_z: 0.23
+
+chassis:
+  length: 1.65
+  width: 1.0
+  height: 0.28
+
+cargo_deck:
+  x: -0.33
+  y: 0.0
+  z: 0.165
+  length: 0.92
+  width: 0.82
+  height: 0.05
+
+drive_wheels:
+  radius: 0.23
+  width: 0.14
+  x: 0.32
+  y_offset: 0.58
+  z: 0.0
+  hub_radius: 0.12
+  hub_width: 0.02
+  hub_y_offset: 0.081
+  left_joint: left_wheel_joint
+  right_joint: right_wheel_joint
+  left_link: left_wheel_link
+  right_link: right_wheel_link
+
+rear_support:
+  x: -0.62
+  y: 0.0
+  z: -0.145
+  radius: 0.085
+  joint: rear_support_wheel_joint
+  link: rear_support_wheel_link

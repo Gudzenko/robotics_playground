@@ -45,7 +45,7 @@ The VS Code integrated terminal sources `install/setup.bash` automatically on st
 
 Production-style warehouse cargo robot model.
 
-The current version is focused on RViz visualization and TF structure only. It does not include movement, sensors, manipulator, Gazebo physics, or navigation yet.
+The current version includes RViz visualization, TF structure, and a simple kinematic movement layer. It does not include sensors, manipulator, Gazebo physics, or navigation yet.
 
 **Build type:** `ament_python`
 **Current model:** heavy cargo platform with front drive wheels, rear support caster, and rear cargo deck
@@ -83,9 +83,13 @@ ros2 launch cargo_bot display.launch.py visual_mode:=prod
 
 ```
 cargo_bot/
+├── config/
+│   └── cargo_bot_geometry.yaml
 ├── launch/
+│   ├── drive_in_rviz.launch.py
 │   └── display.launch.py
 ├── rviz/
+│   ├── cargo_bot_drive.rviz
 │   └── cargo_bot_display.rviz
 └── urdf/
     ├── cargo_bot.urdf.xacro
@@ -95,6 +99,8 @@ cargo_bot/
 ```
 
 The model is split into Xacro modules so the base, wheels, materials, sensors, and future manipulator can be changed independently.
+
+Shared robot geometry is stored in `config/cargo_bot_geometry.yaml`. The Xacro model reads this file, and the future kinematics node should use the same values for wheel radius, wheel spacing, frame names, and joint names.
 
 ### Current robot layout
 
@@ -118,6 +124,71 @@ base_footprint
 ```
 
 The drive wheels use continuous joints, so they can be rotated manually in `joint_state_publisher_gui` while inspecting the TF frames in RViz.
+
+### Drive in RViz
+
+Launch the kinematic RViz simulation:
+
+```bash
+cd robotics_playground_ws
+colcon build --symlink-install --packages-select cargo_bot
+source install/setup.bash
+ros2 launch cargo_bot drive_in_rviz.launch.py
+```
+
+This launch starts:
+
+- `robot_state_publisher`
+- `simple_diff_drive_sim`
+- `rviz2` with fixed frame `odom`
+
+In a second terminal, start keyboard teleoperation:
+
+```bash
+cd robotics_playground_ws
+source install/setup.bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
+```
+
+The teleop node publishes `/cmd_vel`. The kinematic simulator consumes `/cmd_vel`, publishes `odom -> base_footprint`, publishes `/odom`, and publishes wheel `/joint_states`.
+
+For smoother teleoperation, run the keyboard node with a repeat rate:
+
+```bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -p repeat_rate:=10.0
+```
+
+Common keys:
+
+| Key | Action |
+|---|---|
+| `i` | forward |
+| `,` | backward |
+| `j` | turn left |
+| `l` | turn right |
+| `k` | stop |
+
+Useful checks while the drive launch is running:
+
+```bash
+ros2 topic echo /cmd_vel
+ros2 topic echo /odom
+ros2 topic echo /joint_states
+ros2 run tf2_tools view_frames
+```
+
+Expected TF tree:
+
+```
+odom
+└── base_footprint
+    └── base_link
+        ├── chassis_link
+        ├── cargo_deck_link
+        ├── left_wheel_link
+        ├── right_wheel_link
+        └── rear_support_wheel_link
+```
 
 ---
 

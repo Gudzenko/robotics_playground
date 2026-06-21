@@ -47,7 +47,7 @@ The robot is a heavy warehouse cargo platform intended, in the long term, for mo
 - Robot type: heavy warehouse hybrid platform
 - Drive layout: differential drive, two large side drive wheels
 - Support wheel: one passive rear caster/support wheel
-- Cargo area: rear cargo bin/tray for boxes
+- Cargo area: rear cargo deck for boxes; rear bin/tray postponed until the cargo area design is clearer
 - Future manipulator: mounted on the robot later as a separate module
 - Future sensors: lidar, cameras, IMU, and contact sensors may be added later, but are not part of the first visual model
 
@@ -100,18 +100,17 @@ robotics_playground_ws/src/cargo_bot/
 - [x] Visual checkpoint: chassis proportions look like a warehouse cargo platform
 - [x] Add the top cargo deck
 - [x] Visual checkpoint: cargo deck is aligned with the chassis and does not hide TF frames
-- [ ] Add the rear cargo bin/tray later, when the cargo area design is clearer
-- [ ] Visual checkpoint later: rear bin/tray is positioned behind the main platform and leaves room for future manipulator use
 - [x] Add left and right drive wheels with continuous joints
 - [x] Visual checkpoint: wheels sit on the ground plane, rotate around the correct axis, and are symmetric
 - [x] Add the rear caster/support wheel
-- [ ] Visual checkpoint: final first-version robot has a clear 2-drive-wheel + rear-support layout
+- [x] Visual checkpoint: final first-version robot has a clear 2-drive-wheel + rear-support layout
 - [x] Document the package, model structure, and launch command in README
 
 **Expected result:** `ros2 launch cargo_bot display.launch.py` opens RViz with the cargo robot model and TF tree visible.
 
 **Explicitly not included in this step:**
 
+- [ ] No rear cargo bin/tray yet
 - [ ] No sensors yet
 - [ ] No manipulator yet
 - [ ] No `/cmd_vel` movement yet
@@ -128,15 +127,17 @@ Make the robot move in RViz without Gazebo physics. This should be a small kinem
 
 **What needs to be done:**
 
-- [ ] Add a simple differential-drive kinematics node
-- [ ] Subscribe to `/cmd_vel`
-- [ ] Publish `odom -> base_footprint`
-- [ ] Publish `nav_msgs/Odometry` on `/odom`
-- [ ] Publish wheel joint states so the wheels rotate visually
-- [ ] Use `teleop_twist_keyboard` or a small custom teleop node for manual control
-- [ ] Visualize movement and TF in RViz
-- [ ] Generate/check TF tree via `ros2 run tf2_tools view_frames`
-- [ ] Document in README
+- [x] Move shared geometry/kinematics parameters to `config/cargo_bot_geometry.yaml`
+- [x] Add a simple differential-drive kinematics node
+- [x] Subscribe to `/cmd_vel`
+- [x] Publish `odom -> base_footprint`
+- [x] Publish `nav_msgs/Odometry` on `/odom`
+- [x] Publish wheel joint states so the wheels rotate visually
+- [x] Add `drive_in_rviz.launch.py` for movement visualization without `joint_state_publisher_gui`
+- [x] Use `teleop_twist_keyboard` or a small custom teleop node for manual control
+- [x] Visualize movement and TF in RViz
+- [x] Generate/check TF tree via `ros2 run tf2_tools view_frames`
+- [x] Document in README
 
 **Expected result:** the robot can be driven around the RViz grid with `/cmd_vel`, while TF, odometry, and wheel animation remain consistent.
 
@@ -157,6 +158,7 @@ Add a separate manipulator module to the robot model. This should stay modular s
 
 **What needs to be done later:**
 
+- [ ] Revisit rear cargo bin/tray design when object placement requirements are clearer
 - [ ] Add `cargo_bot_manipulator.xacro`
 - [ ] Add lift joint (`prismatic`)
 - [ ] Add rotation joint (`revolute` or `continuous`)

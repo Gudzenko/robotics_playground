@@ -1,65 +1,65 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:macro name="cargo_bot_wheels">
-    <joint name="left_wheel_joint" type="continuous">
-      <parent link="base_link" />
-      <child link="left_wheel_link" />
-      <origin xyz="0.32 0.58 0" rpy="0 0 0" />
+  <xacro:macro name="cargo_bot_wheels" params="geometry">
+    <joint name="${geometry.drive_wheels.left_joint}" type="continuous">
+      <parent link="${geometry.frames.base_link}" />
+      <child link="${geometry.drive_wheels.left_link}" />
+      <origin xyz="${geometry.drive_wheels.x} ${geometry.drive_wheels.y_offset} ${geometry.drive_wheels.z}" rpy="0 0 0" />
       <axis xyz="0 1 0" />
     </joint>
 
-    <link name="left_wheel_link">
+    <link name="${geometry.drive_wheels.left_link}">
       <visual>
         <origin xyz="0 0 0" rpy="1.57079632679 0 0" />
         <geometry>
-          <cylinder radius="0.23" length="0.14" />
+          <cylinder radius="${geometry.drive_wheels.radius}" length="${geometry.drive_wheels.width}" />
         </geometry>
         <material name="tire_black" />
       </visual>
       <visual>
-        <origin xyz="0 0.081 0" rpy="1.57079632679 0 0" />
+        <origin xyz="0 ${geometry.drive_wheels.hub_y_offset} 0" rpy="1.57079632679 0 0" />
         <geometry>
-          <cylinder radius="0.12" length="0.02" />
+          <cylinder radius="${geometry.drive_wheels.hub_radius}" length="${geometry.drive_wheels.hub_width}" />
         </geometry>
         <material name="safety_yellow" />
       </visual>
     </link>
 
-    <joint name="right_wheel_joint" type="continuous">
-      <parent link="base_link" />
-      <child link="right_wheel_link" />
-      <origin xyz="0.32 -0.58 0" rpy="0 0 0" />
+    <joint name="${geometry.drive_wheels.right_joint}" type="continuous">
+      <parent link="${geometry.frames.base_link}" />
+      <child link="${geometry.drive_wheels.right_link}" />
+      <origin xyz="${geometry.drive_wheels.x} ${-geometry.drive_wheels.y_offset} ${geometry.drive_wheels.z}" rpy="0 0 0" />
       <axis xyz="0 1 0" />
     </joint>
 
-    <link name="right_wheel_link">
+    <link name="${geometry.drive_wheels.right_link}">
       <visual>
         <origin xyz="0 0 0" rpy="1.57079632679 0 0" />
         <geometry>
-          <cylinder radius="0.23" length="0.14" />
+          <cylinder radius="${geometry.drive_wheels.radius}" length="${geometry.drive_wheels.width}" />
         </geometry>
         <material name="tire_black" />
       </visual>
       <visual>
-        <origin xyz="0 -0.081 0" rpy="1.57079632679 0 0" />
+        <origin xyz="0 ${-geometry.drive_wheels.hub_y_offset} 0" rpy="1.57079632679 0 0" />
         <geometry>
-          <cylinder radius="0.12" length="0.02" />
+          <cylinder radius="${geometry.drive_wheels.hub_radius}" length="${geometry.drive_wheels.hub_width}" />
         </geometry>
         <material name="safety_yellow" />
       </visual>
     </link>
 
-    <joint name="rear_support_wheel_joint" type="fixed">
-      <parent link="base_link" />
-      <child link="rear_support_wheel_link" />
-      <origin xyz="-0.62 0 -0.145" rpy="0 0 0" />
+    <joint name="${geometry.rear_support.joint}" type="fixed">
+      <parent link="${geometry.frames.base_link}" />
+      <child link="${geometry.rear_support.link}" />
+      <origin xyz="${geometry.rear_support.x} ${geometry.rear_support.y} ${geometry.rear_support.z}" rpy="0 0 0" />
     </joint>
 
-    <link name="rear_support_wheel_link">
+    <link name="${geometry.rear_support.link}">
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-          <sphere radius="0.085" />
+          <sphere radius="${geometry.rear_support.radius}" />
         </geometry>
         <material name="tire_black" />
       </visual>
