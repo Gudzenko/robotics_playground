@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="cargo_bot">
+  <xacro:arg name="visual_mode" default="dev" />
+
+  <xacro:include filename="$(find cargo_bot)/urdf/cargo_bot_materials.xacro" />
+  <xacro:include filename="$(find cargo_bot)/urdf/cargo_bot_base.xacro" />
+  <xacro:include filename="$(find cargo_bot)/urdf/cargo_bot_wheels.xacro" />
+
+  <xacro:cargo_bot_materials visual_mode="$(arg visual_mode)" />
+  <xacro:cargo_bot_base />
+  <xacro:cargo_bot_wheels />
+</robot>

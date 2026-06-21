@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="cargo_bot_wheels">
+    <joint name="left_wheel_joint" type="continuous">
+      <parent link="base_link" />
+      <child link="left_wheel_link" />
+      <origin xyz="0.32 0.58 0" rpy="0 0 0" />
+      <axis xyz="0 1 0" />
+    </joint>
+
+    <link name="left_wheel_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="1.57079632679 0 0" />
+        <geometry>
+          <cylinder radius="0.23" length="0.14" />
+        </geometry>
+        <material name="tire_black" />
+      </visual>
+      <visual>
+        <origin xyz="0 0.081 0" rpy="1.57079632679 0 0" />
+        <geometry>
+          <cylinder radius="0.12" length="0.02" />
+        </geometry>
+        <material name="safety_yellow" />
+      </visual>
+    </link>
+
+    <joint name="right_wheel_joint" type="continuous">
+      <parent link="base_link" />
+      <child link="right_wheel_link" />
+      <origin xyz="0.32 -0.58 0" rpy="0 0 0" />
+      <axis xyz="0 1 0" />
+    </joint>
+
+    <link name="right_wheel_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="1.57079632679 0 0" />
+        <geometry>
+          <cylinder radius="0.23" length="0.14" />
+        </geometry>
+        <material name="tire_black" />
+      </visual>
+      <visual>
+        <origin xyz="0 -0.081 0" rpy="1.57079632679 0 0" />
+        <geometry>
+          <cylinder radius="0.12" length="0.02" />
+        </geometry>
+        <material name="safety_yellow" />
+      </visual>
+    </link>
+
+    <joint name="rear_support_wheel_joint" type="fixed">
+      <parent link="base_link" />
+      <child link="rear_support_wheel_link" />
+      <origin xyz="-0.62 0 -0.145" rpy="0 0 0" />
+    </joint>
+
+    <link name="rear_support_wheel_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <sphere radius="0.085" />
+        </geometry>
+        <material name="tire_black" />
+      </visual>
+    </link>
+  </xacro:macro>
+</robot>

@@ -41,6 +41,86 @@ The VS Code integrated terminal sources `install/setup.bash` automatically on st
 
 ---
 
+## Package: cargo_bot
+
+Production-style warehouse cargo robot model.
+
+The current version is focused on RViz visualization and TF structure only. It does not include movement, sensors, manipulator, Gazebo physics, or navigation yet.
+
+**Build type:** `ament_python`
+**Current model:** heavy cargo platform with front drive wheels, rear support caster, and rear cargo deck
+
+### Launch visualization
+
+```bash
+cd robotics_playground_ws
+colcon build --symlink-install --packages-select cargo_bot
+source install/setup.bash
+ros2 launch cargo_bot display.launch.py
+```
+
+The display launch starts:
+
+- `robot_state_publisher` — reads `robot_description` and publishes TF
+- `joint_state_publisher_gui` — publishes manual joint states for the wheel joints
+- `rviz2` — opens the saved RViz scene with RobotModel, TF, and Grid
+
+### Visual modes
+
+The launch file supports a `visual_mode` argument:
+
+```bash
+ros2 launch cargo_bot display.launch.py visual_mode:=dev
+ros2 launch cargo_bot display.launch.py visual_mode:=prod
+```
+
+| Mode | Purpose |
+|---|---|
+| `dev` | Transparent materials for inspecting TF frames and internal geometry. This is the default. |
+| `prod` | Opaque materials for checking the robot's external appearance. |
+
+### Model structure
+
+```
+cargo_bot/
+├── launch/
+│   └── display.launch.py
+├── rviz/
+│   └── cargo_bot_display.rviz
+└── urdf/
+    ├── cargo_bot.urdf.xacro
+    ├── cargo_bot_base.xacro
+    ├── cargo_bot_materials.xacro
+    └── cargo_bot_wheels.xacro
+```
+
+The model is split into Xacro modules so the base, wheels, materials, sensors, and future manipulator can be changed independently.
+
+### Current robot layout
+
+- `+X` is the front of the robot, reserved for a future manipulator.
+- `-X` is the rear of the robot, where the cargo deck is located.
+- `+Y` is the left side of the robot.
+- `-Y` is the right side of the robot.
+- The drive wheels are placed forward on the left and right sides.
+- The rear support caster is currently a simple visual sphere with a fixed joint.
+
+Current TF/link structure:
+
+```
+base_footprint
+└── base_link
+    ├── chassis_link
+    ├── cargo_deck_link
+    ├── left_wheel_link
+    ├── right_wheel_link
+    └── rear_support_wheel_link
+```
+
+The drive wheels use continuous joints, so they can be rotated manually in `joint_state_publisher_gui` while inspecting the TF frames in RViz.
+
+---
+
 ## ROS 2 CLI reference
 
 ### Topics
