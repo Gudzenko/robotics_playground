@@ -159,19 +159,33 @@ Add a separate manipulator module to the robot model. This should stay modular s
 **What needs to be done later:**
 
 - [ ] Revisit rear cargo bin/tray design when object placement requirements are clearer
-- [ ] Add `cargo_bot_manipulator.xacro`
-- [ ] Add lift joint (`prismatic`)
-- [ ] Add rotation joint (`revolute` or `continuous`)
-- [ ] Add telescoping arm joint (`prismatic`)
-- [ ] Add gripper joints
-- [ ] Add camera link near the gripper
-- [ ] Control joints manually through `joint_state_publisher_gui` first
-- [ ] Later add a dedicated manipulator control node
-- [ ] Document link/joint structure in README
+- [x] Add `cargo_bot_manipulator.xacro`
+- [x] Add lift joint (`prismatic`)
+- [x] Add rotation joint (`revolute` or `continuous`)
+- [x] Add telescoping arm joint (`prismatic`)
+- [x] Add gripper joints
+- [x] Add camera link near the gripper
+- [x] Control joints manually through `joint_state_publisher_gui` first
+- [x] Document link/joint structure in README
 
 ---
 
-### 4. Sensors (later)
+### 4. Manipulator control node (later)
+
+Add a dedicated ROS control layer for the manipulator after the visual model is stable.
+
+**What needs to be done later:**
+
+- [ ] Decide command interface: topics, services, actions, or a small custom controller API
+- [ ] Add commands for lift, rotation, telescoping arm, and gripper
+- [ ] Add simple named poses, e.g. stowed, pickup, place-to-cargo-deck
+- [ ] Publish joint states from the control node instead of using `joint_state_publisher_gui`
+- [ ] Add safety limits based on `cargo_bot_geometry.yaml`
+- [ ] Document usage in README
+
+---
+
+### 5. Sensors (later)
 
 Add sensors only when they are needed by the next concrete step. Avoid placeholder links in the first robot model unless a sensor is being implemented.
 
@@ -187,7 +201,7 @@ Add sensors only when they are needed by the next concrete step. Avoid placehold
 
 ---
 
-### 5. Gazebo / physics (later)
+### 6. Gazebo / physics (later)
 
 Simulate the robot in a physics environment.
 
@@ -205,7 +219,7 @@ Simulate the robot in a physics environment.
 
 ---
 
-### 6. Environment visualization / warehouse or apartment (later)
+### 7. Environment visualization / warehouse or apartment (later)
 
 Create a simple environment only after the robot visual model and basic movement are understood.
 
@@ -219,7 +233,7 @@ Create a simple environment only after the robot visual model and basic movement
 
 ---
 
-### 7. Nav2 (much later)
+### 8. Nav2 (much later)
 
 Autonomous navigation: map, planner, costmap.
 

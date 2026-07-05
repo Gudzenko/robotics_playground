@@ -39,3 +39,97 @@ rear_support:
   radius: 0.085
   joint: rear_support_wheel_joint
   link: rear_support_wheel_link
+
+manipulator:
+  mount:
+    x: 0.52
+    y: 0.0
+    z: 0.19
+    lower: -3.14159
+    upper: 3.14159
+    effort: 500.0
+    velocity: 0.8
+    radius: 0.24
+    height: 0.1
+    link: manipulator_mount_link
+    joint: manipulator_mount_joint
+  column:
+    z: 0.95
+    length: 0.16
+    width: 0.14
+    height: 1.8
+    link: manipulator_column_link
+    joint: manipulator_column_joint
+  lift:
+    z: 0.0
+    lower: -0.78
+    upper: 0.78
+    effort: 2000.0
+    velocity: 0.3
+    length: 0.18
+    width: 0.44
+    height: 0.16
+    link: manipulator_lift_link
+    joint: manipulator_lift_joint
+  arm:
+    housing:
+      x: 0.09
+      y: 0.0
+      z: 0.0
+      length: 0.55
+      width: 0.18
+      height: 0.12
+      link: manipulator_arm_housing_link
+      joint: manipulator_arm_housing_joint
+    extension:
+      x: 0.12
+      y: 0.0
+      z: 0.0
+      lower: 0.0
+      upper: 0.35
+      effort: 800.0
+      velocity: 0.25
+      length: 0.75
+      width: 0.1
+      height: 0.08
+      link: manipulator_arm_extension_link
+      joint: manipulator_arm_joint
+  gripper:
+    base:
+      x: 0.78
+      y: 0.0
+      z: 0.0
+      length: 0.16
+      width: 0.34
+      height: 0.08
+      link: manipulator_gripper_base_link
+      joint: manipulator_gripper_base_joint
+    fingers:
+      lower: 0.0
+      upper: 0.135
+      effort: 100.0
+      velocity: 0.2
+      x: 0.1
+      y_offset: 0.02
+      z: 0.0
+      length: 0.24
+      width: 0.025
+      height: 0.08
+      left_link: manipulator_left_finger_link
+      right_link: manipulator_right_finger_link
+      left_joint: manipulator_left_finger_joint
+      right_joint: manipulator_right_finger_joint
+    camera:
+      x: 0.07
+      y: 0.0
+      z: 0.24
+      length: 0.055
+      width: 0.08
+      height: 0.04
+      link: gripper_camera_link
+      joint: gripper_camera_joint
+      bracket_x: 0.0275
+      bracket_z: 0.125
+      bracket_length: 0.018
+      bracket_width: 0.018
+      bracket_height: 0.22

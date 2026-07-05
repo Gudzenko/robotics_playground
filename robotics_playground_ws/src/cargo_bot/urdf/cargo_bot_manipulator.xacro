@@ -1,0 +1,166 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="cargo_bot_manipulator" params="geometry">
+    <joint name="${geometry.manipulator.mount.joint}" type="revolute">
+      <parent link="${geometry.frames.base_link}" />
+      <child link="${geometry.manipulator.mount.link}" />
+      <origin xyz="${geometry.manipulator.mount.x} ${geometry.manipulator.mount.y} ${geometry.manipulator.mount.z}" rpy="0 0 0" />
+      <axis xyz="0 0 1" />
+      <limit lower="${geometry.manipulator.mount.lower}" upper="${geometry.manipulator.mount.upper}" effort="${geometry.manipulator.mount.effort}" velocity="${geometry.manipulator.mount.velocity}" />
+    </joint>
+
+    <link name="${geometry.manipulator.mount.link}">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <cylinder radius="${geometry.manipulator.mount.radius}" length="${geometry.manipulator.mount.height}" />
+        </geometry>
+        <material name="manipulator_accent" />
+      </visual>
+    </link>
+
+    <joint name="${geometry.manipulator.column.joint}" type="fixed">
+      <parent link="${geometry.manipulator.mount.link}" />
+      <child link="${geometry.manipulator.column.link}" />
+      <origin xyz="0 0 ${geometry.manipulator.column.z}" rpy="0 0 0" />
+    </joint>
+
+    <link name="${geometry.manipulator.column.link}">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <box size="${geometry.manipulator.column.length} ${geometry.manipulator.column.width} ${geometry.manipulator.column.height}" />
+        </geometry>
+        <material name="manipulator_steel" />
+      </visual>
+    </link>
+
+    <joint name="${geometry.manipulator.lift.joint}" type="prismatic">
+      <parent link="${geometry.manipulator.column.link}" />
+      <child link="${geometry.manipulator.lift.link}" />
+      <origin xyz="0 0 ${geometry.manipulator.lift.z}" rpy="0 0 0" />
+      <axis xyz="0 0 1" />
+      <limit lower="${geometry.manipulator.lift.lower}" upper="${geometry.manipulator.lift.upper}" effort="${geometry.manipulator.lift.effort}" velocity="${geometry.manipulator.lift.velocity}" />
+    </joint>
+
+    <link name="${geometry.manipulator.lift.link}">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <box size="${geometry.manipulator.lift.length} ${geometry.manipulator.lift.width} ${geometry.manipulator.lift.height}" />
+        </geometry>
+        <material name="manipulator_accent" />
+      </visual>
+    </link>
+
+    <joint name="${geometry.manipulator.arm.housing.joint}" type="fixed">
+      <parent link="${geometry.manipulator.lift.link}" />
+      <child link="${geometry.manipulator.arm.housing.link}" />
+      <origin xyz="${geometry.manipulator.arm.housing.x} ${geometry.manipulator.arm.housing.y} ${geometry.manipulator.arm.housing.z}" rpy="0 0 0" />
+    </joint>
+
+    <link name="${geometry.manipulator.arm.housing.link}">
+      <visual>
+        <origin xyz="${geometry.manipulator.arm.housing.length / 2.0} 0 0" rpy="0 0 0" />
+        <geometry>
+          <box size="${geometry.manipulator.arm.housing.length} ${geometry.manipulator.arm.housing.width} ${geometry.manipulator.arm.housing.height}" />
+        </geometry>
+        <material name="manipulator_accent" />
+      </visual>
+    </link>
+
+    <joint name="${geometry.manipulator.arm.extension.joint}" type="prismatic">
+      <parent link="${geometry.manipulator.arm.housing.link}" />
+      <child link="${geometry.manipulator.arm.extension.link}" />
+      <origin xyz="${geometry.manipulator.arm.extension.x} ${geometry.manipulator.arm.extension.y} ${geometry.manipulator.arm.extension.z}" rpy="0 0 0" />
+      <axis xyz="1 0 0" />
+      <limit lower="${geometry.manipulator.arm.extension.lower}" upper="${geometry.manipulator.arm.extension.upper}" effort="${geometry.manipulator.arm.extension.effort}" velocity="${geometry.manipulator.arm.extension.velocity}" />
+    </joint>
+
+    <link name="${geometry.manipulator.arm.extension.link}">
+      <visual>
+        <origin xyz="${geometry.manipulator.arm.extension.length / 2.0} 0 0" rpy="0 0 0" />
+        <geometry>
+          <box size="${geometry.manipulator.arm.extension.length} ${geometry.manipulator.arm.extension.width} ${geometry.manipulator.arm.extension.height}" />
+        </geometry>
+        <material name="manipulator_steel" />
+      </visual>
+    </link>
+
+    <joint name="${geometry.manipulator.gripper.base.joint}" type="fixed">
+      <parent link="${geometry.manipulator.arm.extension.link}" />
+      <child link="${geometry.manipulator.gripper.base.link}" />
+      <origin xyz="${geometry.manipulator.gripper.base.x} ${geometry.manipulator.gripper.base.y} ${geometry.manipulator.gripper.base.z}" rpy="0 0 0" />
+    </joint>
+
+    <link name="${geometry.manipulator.gripper.base.link}">
+      <visual>
+        <origin xyz="${geometry.manipulator.gripper.base.length / 2.0} 0 0" rpy="0 0 0" />
+        <geometry>
+          <box size="${geometry.manipulator.gripper.base.length} ${geometry.manipulator.gripper.base.width} ${geometry.manipulator.gripper.base.height}" />
+        </geometry>
+        <material name="manipulator_accent" />
+      </visual>
+    </link>
+
+    <joint name="${geometry.manipulator.gripper.fingers.left_joint}" type="prismatic">
+      <parent link="${geometry.manipulator.gripper.base.link}" />
+      <child link="${geometry.manipulator.gripper.fingers.left_link}" />
+      <origin xyz="${geometry.manipulator.gripper.fingers.x} ${geometry.manipulator.gripper.fingers.y_offset} ${geometry.manipulator.gripper.fingers.z}" rpy="0 0 0" />
+      <axis xyz="0 1 0" />
+      <limit lower="${geometry.manipulator.gripper.fingers.lower}" upper="${geometry.manipulator.gripper.fingers.upper}" effort="${geometry.manipulator.gripper.fingers.effort}" velocity="${geometry.manipulator.gripper.fingers.velocity}" />
+    </joint>
+
+    <link name="${geometry.manipulator.gripper.fingers.left_link}">
+      <visual>
+        <origin xyz="${geometry.manipulator.gripper.fingers.length / 2.0} 0 0" rpy="0 0 0" />
+        <geometry>
+          <box size="${geometry.manipulator.gripper.fingers.length} ${geometry.manipulator.gripper.fingers.width} ${geometry.manipulator.gripper.fingers.height}" />
+        </geometry>
+        <material name="safety_yellow" />
+      </visual>
+    </link>
+
+    <joint name="${geometry.manipulator.gripper.fingers.right_joint}" type="prismatic">
+      <parent link="${geometry.manipulator.gripper.base.link}" />
+      <child link="${geometry.manipulator.gripper.fingers.right_link}" />
+      <origin xyz="${geometry.manipulator.gripper.fingers.x} ${-geometry.manipulator.gripper.fingers.y_offset} ${geometry.manipulator.gripper.fingers.z}" rpy="0 0 0" />
+      <axis xyz="0 1 0" />
+      <limit lower="${-geometry.manipulator.gripper.fingers.upper}" upper="${geometry.manipulator.gripper.fingers.lower}" effort="${geometry.manipulator.gripper.fingers.effort}" velocity="${geometry.manipulator.gripper.fingers.velocity}" />
+      <mimic joint="${geometry.manipulator.gripper.fingers.left_joint}" multiplier="-1.0" offset="0.0" />
+    </joint>
+
+    <link name="${geometry.manipulator.gripper.fingers.right_link}">
+      <visual>
+        <origin xyz="${geometry.manipulator.gripper.fingers.length / 2.0} 0 0" rpy="0 0 0" />
+        <geometry>
+          <box size="${geometry.manipulator.gripper.fingers.length} ${geometry.manipulator.gripper.fingers.width} ${geometry.manipulator.gripper.fingers.height}" />
+        </geometry>
+        <material name="safety_yellow" />
+      </visual>
+    </link>
+
+    <joint name="${geometry.manipulator.gripper.camera.joint}" type="fixed">
+      <parent link="${geometry.manipulator.gripper.base.link}" />
+      <child link="${geometry.manipulator.gripper.camera.link}" />
+      <origin xyz="${geometry.manipulator.gripper.camera.x} ${geometry.manipulator.gripper.camera.y} ${geometry.manipulator.gripper.camera.z}" rpy="0 0 0" />
+    </joint>
+
+    <link name="${geometry.manipulator.gripper.camera.link}">
+      <visual>
+        <origin xyz="${geometry.manipulator.gripper.camera.bracket_x} 0 ${-geometry.manipulator.gripper.camera.bracket_z}" rpy="0 0 0" />
+        <geometry>
+          <box size="${geometry.manipulator.gripper.camera.bracket_length} ${geometry.manipulator.gripper.camera.bracket_width} ${geometry.manipulator.gripper.camera.bracket_height}" />
+        </geometry>
+        <material name="manipulator_steel" />
+      </visual>
+      <visual>
+        <origin xyz="${geometry.manipulator.gripper.camera.length / 2.0} 0 0" rpy="0 0 0" />
+        <geometry>
+          <box size="${geometry.manipulator.gripper.camera.length} ${geometry.manipulator.gripper.camera.width} ${geometry.manipulator.gripper.camera.height}" />
+        </geometry>
+        <material name="camera_black" />
+      </visual>
+    </link>
+  </xacro:macro>
+</robot>

@@ -45,10 +45,10 @@ The VS Code integrated terminal sources `install/setup.bash` automatically on st
 
 Production-style warehouse cargo robot model.
 
-The current version includes RViz visualization, TF structure, and a simple kinematic movement layer. It does not include sensors, manipulator, Gazebo physics, or navigation yet.
+The current version includes RViz visualization, TF structure, a simple kinematic movement layer, and a visual manipulator model. It does not include sensor data, Gazebo physics, or navigation yet.
 
 **Build type:** `ament_python`
-**Current model:** heavy cargo platform with front drive wheels, rear support caster, and rear cargo deck
+**Current model:** heavy cargo platform with front drive wheels, rear support caster, rear cargo deck, and front manipulator
 
 ### Launch visualization
 
@@ -94,6 +94,7 @@ cargo_bot/
 └── urdf/
     ├── cargo_bot.urdf.xacro
     ├── cargo_bot_base.xacro
+    ├── cargo_bot_manipulator.xacro
     ├── cargo_bot_materials.xacro
     └── cargo_bot_wheels.xacro
 ```
@@ -110,6 +111,7 @@ Shared robot geometry is stored in `config/cargo_bot_geometry.yaml`. The Xacro m
 - `-Y` is the right side of the robot.
 - The drive wheels are placed forward on the left and right sides.
 - The rear support caster is currently a simple visual sphere with a fixed joint.
+- The front manipulator has a rotating base, vertical lift, telescoping arm, gripper, and fixed camera frame.
 
 Current TF/link structure:
 
@@ -120,10 +122,34 @@ base_footprint
     ├── cargo_deck_link
     ├── left_wheel_link
     ├── right_wheel_link
-    └── rear_support_wheel_link
+    ├── rear_support_wheel_link
+    └── manipulator_mount_link
+        └── manipulator_column_link
+            └── manipulator_lift_link
+                └── manipulator_arm_housing_link
+                    └── manipulator_arm_extension_link
+                        └── manipulator_gripper_base_link
+                            ├── manipulator_left_finger_link
+                            ├── manipulator_right_finger_link
+                            └── gripper_camera_link
 ```
 
 The drive wheels use continuous joints, so they can be rotated manually in `joint_state_publisher_gui` while inspecting the TF frames in RViz.
+
+### Manipulator
+
+The manipulator is currently a visual/kinematic model only. It has no physics, object grasping, camera stream, or planning yet.
+
+Available manipulator joints in `joint_state_publisher_gui`:
+
+| Joint | Purpose |
+|---|---|
+| `manipulator_mount_joint` | Rotates the whole manipulator base around the vertical axis. |
+| `manipulator_lift_joint` | Moves the lift carriage up and down the column. |
+| `manipulator_arm_joint` | Extends the telescoping arm. |
+| `manipulator_left_finger_joint` | Opens/closes the gripper; the right finger mimics it. |
+
+The `gripper_camera_link` is a fixed visual camera frame mounted above the gripper. It does not publish images yet.
 
 ### Drive in RViz
 
