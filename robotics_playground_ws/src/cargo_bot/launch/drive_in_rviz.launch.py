@@ -30,7 +30,10 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'visual_mode',
             default_value='dev',
-            description='Visual material mode: dev uses transparent materials, prod uses opaque materials.',
+            description=(
+                'Visual material mode: dev uses transparent materials, '
+                'prod uses opaque materials.'
+            ),
         ),
         Node(
             package='robot_state_publisher',

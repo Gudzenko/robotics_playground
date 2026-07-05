@@ -1,0 +1,6 @@
+string operation_id
+---
+# Result statuses are limited to: done, error.
+string operation_id
+string status
+string message

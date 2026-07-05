@@ -101,7 +101,7 @@ cargo_bot/
 
 The model is split into Xacro modules so the base, wheels, materials, sensors, and future manipulator can be changed independently.
 
-Shared robot geometry is stored in `config/cargo_bot_geometry.yaml`. The Xacro model reads this file, and the future kinematics node should use the same values for wheel radius, wheel spacing, frame names, and joint names.
+Shared robot geometry is stored in `config/cargo_bot_geometry.yaml`. The Xacro model and control nodes read this file so geometry, limits, frame names, and joint names stay consistent.
 
 ### Current robot layout
 
@@ -150,6 +150,52 @@ Available manipulator joints in `joint_state_publisher_gui`:
 | `manipulator_left_finger_joint` | Opens/closes the gripper; the right finger mimics it. |
 
 The `gripper_camera_link` is a fixed visual camera frame mounted above the gripper. It does not publish images yet.
+
+### Manipulator control in RViz
+
+Launch the robot with the manipulator control node instead of manual GUI sliders.
+
+Terminal 1:
+
+```bash
+cd robotics_playground_ws
+colcon build --symlink-install --packages-select cargo_bot_interfaces cargo_bot
+source install/setup.bash
+ros2 launch cargo_bot manipulator_in_rviz.launch.py
+```
+
+Terminal 2:
+
+```bash
+cd robotics_playground_ws
+source install/setup.bash
+ros2 action send_goal /cargo_bot/move_manipulator_element cargo_bot_interfaces/action/MoveManipulatorElement "{element: lift, position: 0.4, duration_sec: 3.0}" --feedback
+```
+
+Supported elements:
+
+| Element | Controlled joint |
+|---|---|
+| `rotation` | `manipulator_mount_joint` |
+| `lift` | `manipulator_lift_joint` |
+| `arm` | `manipulator_arm_joint` |
+| `gripper` | `manipulator_left_finger_joint`; the right finger mirrors it |
+
+The command validates element names, numeric values, and per-element limits from `cargo_bot_geometry.yaml`. Valid commands return `started` feedback and then `done`. Invalid commands return `error`.
+
+Query current state:
+
+```bash
+ros2 service call /cargo_bot/get_manipulator_state cargo_bot_interfaces/srv/GetManipulatorState
+```
+
+Cancel an active operation by the returned `operation_id`:
+
+```bash
+ros2 service call /cargo_bot/cancel_manipulator_operation cargo_bot_interfaces/srv/CancelManipulatorOperation "{operation_id: 'PASTE_ID_HERE'}"
+```
+
+This mode also starts `passive_joint_state_publisher`, which keeps non-manipulator passive joints, such as the wheels, visible in RViz without mixing wheel logic into the manipulator control node.
 
 ### Drive in RViz
 

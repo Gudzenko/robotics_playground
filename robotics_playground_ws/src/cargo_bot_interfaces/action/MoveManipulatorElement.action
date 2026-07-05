@@ -1,0 +1,13 @@
+# Goal: move one manipulator element to a target position.
+string element
+float64 position
+float64 duration_sec
+---
+# Result statuses are limited to: started, done, error.
+string operation_id
+string status
+string message
+---
+# Feedback is intentionally minimal.
+string operation_id
+string status

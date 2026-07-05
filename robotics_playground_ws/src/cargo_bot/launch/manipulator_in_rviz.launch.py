@@ -41,8 +41,12 @@ def generate_launch_description():
             parameters=[{'robot_description': robot_description}],
         ),
         Node(
-            package='joint_state_publisher_gui',
-            executable='joint_state_publisher_gui',
+            package='cargo_bot',
+            executable='manipulator_control_node',
+        ),
+        Node(
+            package='cargo_bot',
+            executable='passive_joint_state_publisher',
         ),
         Node(
             package='rviz2',

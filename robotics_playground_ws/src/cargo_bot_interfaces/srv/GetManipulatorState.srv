@@ -1,0 +1,3 @@
+---
+cargo_bot_interfaces/ManipulatorElementState[] states
+string message

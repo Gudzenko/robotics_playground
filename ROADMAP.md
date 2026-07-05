@@ -174,18 +174,70 @@ Add a separate manipulator module to the robot model. This should stay modular s
 
 Add a dedicated ROS control layer for the manipulator after the visual model is stable.
 
+**Current interface contract:**
+
+- `MoveManipulatorElement.action`: sends one movement command to one manipulator element.
+- `CancelManipulatorOperation.srv`: requests cancellation by `operation_id`.
+- `GetManipulatorState.srv`: returns the current state of all manipulator elements.
+- `ManipulatorElementState.msg`: describes one element state with its name, position, movement flag, operation id, and status.
+- The control node now implements the basic command, cancel, state, limit validation, and RViz joint-state flow.
+
 **What needs to be done later:**
 
-- [ ] Decide command interface: topics, services, actions, or a small custom controller API
-- [ ] Add commands for lift, rotation, telescoping arm, and gripper
-- [ ] Add simple named poses, e.g. stowed, pickup, place-to-cargo-deck
-- [ ] Publish joint states from the control node instead of using `joint_state_publisher_gui`
-- [ ] Add safety limits based on `cargo_bot_geometry.yaml`
-- [ ] Document usage in README
+- [x] Decide command interface: one Action operation per manipulator element
+- [x] Create `cargo_bot_interfaces` with `MoveManipulatorElement.action`
+- [x] Create `CancelManipulatorOperation.srv` interface
+- [x] Create `GetManipulatorState.srv` interface
+- [x] Create `manipulator_control_node` skeleton
+- [x] Connect `GetManipulatorState.srv` to `manipulator_control_node` with initial static states
+- [x] Move shared manipulator element names and statuses into constants
+- [x] Move initial manipulator element state values into defaults
+- [x] Add `MoveManipulatorElement.action` server with operation id generation and basic validation
+- [x] Load manipulator element limits from `cargo_bot_geometry.yaml`
+- [x] Validate command positions against per-element limits
+- [x] Update stored element state after a successful command
+- [x] Connect `CancelManipulatorOperation.srv` to `manipulator_control_node`
+- [x] Add element busy-state check before accepting movement
+- [x] Use a reentrant callback group and multithreaded executor for parallel callbacks
+- [x] Execute accepted commands for `duration_sec` at the state level
+- [x] Allow `CancelManipulatorOperation.srv` to interrupt an active state-level operation
+- [x] Publish manipulator joint states from `manipulator_control_node`
+- [x] Add RViz launch mode driven by `manipulator_control_node`
+- [x] Move non-manipulator passive joint states into a separate publisher
+- [x] Add linear interpolation for state-level manipulator movement
+- [x] Add commands for lift, rotation, telescoping arm, and gripper
+- [x] Generate an `operation_id` for every accepted or rejected command
+- [x] Return only `started`, `done`, or `error` statuses
+- [x] Allow different elements to move in parallel
+- [x] Reject a new command if the same element is already moving
+- [x] Add cancel by `operation_id`; a successfully canceled running operation returns `done`
+- [x] Add a state query interface for positions, active operations, and last statuses
+- [x] Publish joint states from the control node instead of using `joint_state_publisher_gui`
+- [x] Add safety limits based on `cargo_bot_geometry.yaml`
+- [x] Document usage in README
+
+**Possible refactoring / cleanup:**
+
+- [x] Extract geometry loading helpers from `manipulator_control_node.py`
+- [x] Extract manipulator operation state handling into a small dedicated class
+- [x] Consider moving shared joint-state publish timing constants into a common module
 
 ---
 
-### 5. Sensors (later)
+### 5. Manipulator enhancements (later)
+
+Keep these out of the current basic control step until they are needed by a concrete workflow.
+
+**Candidate future improvements:**
+
+- [ ] Add simple named poses, e.g. stowed, pickup, place-to-cargo-deck
+- [ ] Add smoother motion profiles instead of linear interpolation
+- [ ] Add a higher-level command layer for coordinated multi-element motions
+- [ ] Add real gripper/object interaction when physics simulation is introduced
+
+---
+
+### 6. Sensors (later)
 
 Add sensors only when they are needed by the next concrete step. Avoid placeholder links in the first robot model unless a sensor is being implemented.
 
@@ -201,7 +253,7 @@ Add sensors only when they are needed by the next concrete step. Avoid placehold
 
 ---
 
-### 6. Gazebo / physics (later)
+### 7. Gazebo / physics (later)
 
 Simulate the robot in a physics environment.
 
@@ -219,7 +271,7 @@ Simulate the robot in a physics environment.
 
 ---
 
-### 7. Environment visualization / warehouse or apartment (later)
+### 8. Environment visualization / warehouse or apartment (later)
 
 Create a simple environment only after the robot visual model and basic movement are understood.
 
@@ -233,7 +285,7 @@ Create a simple environment only after the robot visual model and basic movement
 
 ---
 
-### 8. Nav2 (much later)
+### 9. Nav2 (much later)
 
 Autonomous navigation: map, planner, costmap.
 
