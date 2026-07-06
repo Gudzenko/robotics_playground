@@ -1,0 +1,1 @@
+"""Warehouse scene marker factories."""

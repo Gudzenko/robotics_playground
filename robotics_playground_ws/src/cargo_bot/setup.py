@@ -34,6 +34,7 @@ setup(
             'simple_diff_drive_sim = cargo_bot.simple_diff_drive_sim:main',
             'manipulator_control_node = cargo_bot.manipulator_control_node:main',
             'passive_joint_state_publisher = cargo_bot.passive_joint_state_publisher:main',
+            'warehouse_scene_publisher = cargo_bot.warehouse_scene_publisher:main',
         ],
     },
 )

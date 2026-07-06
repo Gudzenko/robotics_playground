@@ -271,17 +271,33 @@ Simulate the robot in a physics environment.
 
 ---
 
-### 8. Environment visualization / warehouse or apartment (later)
+### 8. Warehouse environment visualization
 
-Create a simple environment only after the robot visual model and basic movement are understood.
+Create a simple RViz-only warehouse scene around the robot. This step is for visual context and scale checks only; it does not add Gazebo physics, collision handling, mapping, or navigation.
 
-**What needs to be done later:**
+**Planned approach:**
 
-- [ ] Decide whether the first environment is a warehouse, apartment-like layout, or both
-- [ ] Start with simple geometry: floor, walls, doors/aisles, shelves/obstacles
-- [ ] Keep dimensions realistic enough for mapping/navigation later
-- [ ] Add RViz visualization or Gazebo world depending on the current stage
-- [ ] Document launch commands and model structure
+- [x] Choose first environment type: warehouse
+- [x] Choose first visualization approach: RViz `MarkerArray`
+- [x] Create a separate `warehouse_scene_publisher` node
+- [x] Publish a floor, simple boundary walls, shelf blocks, and a loading/drop-off area
+  - [x] Publish the first floor marker
+  - [x] Publish simple boundary wall markers
+  - [x] Publish first shelf block markers
+  - [x] Split warehouse scene marker factories by object type
+  - [x] Publish the first loading/drop-off zone marker
+  - [x] Publish first box markers
+- [x] Keep dimensions realistic enough for later mapping/navigation experiments
+- [x] Add a launch file that starts the robot, warehouse scene, and RViz
+- [x] Verify that the robot can be driven visually through the warehouse scene
+- [x] Document launch commands and model structure
+
+**Current limitation:** this RViz scene is visual only. It does not prevent the robot from driving through walls, shelves, boxes, or zones. Collision handling belongs to future Gazebo/physics or navigation/costmap steps.
+
+**Future variants:**
+
+- [ ] Add an apartment-like environment later if needed
+- [ ] Move the warehouse scene into Gazebo when physics simulation starts
 
 ---
 

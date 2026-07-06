@@ -161,8 +161,12 @@ class SimpleDiffDriveSim(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = SimpleDiffDriveSim()
+
     try:
         rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.get_logger().info('Simple diff-drive sim stopped')
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()

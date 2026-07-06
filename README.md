@@ -262,6 +262,39 @@ odom
         └── rear_support_wheel_link
 ```
 
+### Warehouse scene in RViz
+
+Launch the robot inside a simple RViz-only warehouse scene:
+
+Terminal 1:
+
+```bash
+cd robotics_playground_ws
+colcon build --symlink-install --packages-select cargo_bot
+source install/setup.bash
+ros2 launch cargo_bot warehouse_in_rviz.launch.py
+```
+
+Terminal 2:
+
+```bash
+cd robotics_playground_ws
+source install/setup.bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -p repeat_rate:=10.0
+```
+
+This launch starts:
+
+- `robot_state_publisher`
+- `simple_diff_drive_sim`
+- `manipulator_control_node`
+- `warehouse_scene_publisher`
+- `rviz2` with `RobotModel`, `TF`, and `/warehouse_scene`
+
+The warehouse scene is published as `visualization_msgs/MarkerArray` on `/warehouse_scene`. It currently includes a floor, boundary walls, shelf blocks, a loading/drop-off zone, and simple boxes.
+
+This is visual context only. It does not add Gazebo physics, collision handling, mapping, or autonomous navigation.
+
 ---
 
 ## ROS 2 CLI reference
