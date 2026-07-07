@@ -9,6 +9,11 @@
     </joint>
 
     <link name="${geometry.drive_wheels.left_link}">
+      <xacro:cylinder_inertial
+        mass="${geometry.drive_wheels.mass}"
+        radius="${geometry.drive_wheels.radius}"
+        length="${geometry.drive_wheels.width}"
+        origin_rpy="1.57079632679 0 0" />
       <visual>
         <origin xyz="0 0 0" rpy="1.57079632679 0 0" />
         <geometry>
@@ -16,6 +21,12 @@
         </geometry>
         <material name="tire_black" />
       </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="1.57079632679 0 0" />
+        <geometry>
+          <cylinder radius="${geometry.drive_wheels.radius}" length="${geometry.drive_wheels.width}" />
+        </geometry>
+      </collision>
       <visual>
         <origin xyz="0 ${geometry.drive_wheels.hub_y_offset} 0" rpy="1.57079632679 0 0" />
         <geometry>
@@ -33,6 +44,11 @@
     </joint>
 
     <link name="${geometry.drive_wheels.right_link}">
+      <xacro:cylinder_inertial
+        mass="${geometry.drive_wheels.mass}"
+        radius="${geometry.drive_wheels.radius}"
+        length="${geometry.drive_wheels.width}"
+        origin_rpy="1.57079632679 0 0" />
       <visual>
         <origin xyz="0 0 0" rpy="1.57079632679 0 0" />
         <geometry>
@@ -40,6 +56,12 @@
         </geometry>
         <material name="tire_black" />
       </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="1.57079632679 0 0" />
+        <geometry>
+          <cylinder radius="${geometry.drive_wheels.radius}" length="${geometry.drive_wheels.width}" />
+        </geometry>
+      </collision>
       <visual>
         <origin xyz="0 ${-geometry.drive_wheels.hub_y_offset} 0" rpy="1.57079632679 0 0" />
         <geometry>
@@ -56,6 +78,9 @@
     </joint>
 
     <link name="${geometry.rear_support.link}">
+      <xacro:sphere_inertial
+        mass="${geometry.rear_support.mass}"
+        radius="${geometry.rear_support.radius}" />
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
@@ -63,6 +88,12 @@
         </geometry>
         <material name="tire_black" />
       </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <sphere radius="${geometry.rear_support.radius}" />
+        </geometry>
+      </collision>
     </link>
   </xacro:macro>
 </robot>

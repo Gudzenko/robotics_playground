@@ -94,6 +94,7 @@ cargo_bot/
 └── urdf/
     ├── cargo_bot.urdf.xacro
     ├── cargo_bot_base.xacro
+    ├── cargo_bot_inertial.xacro
     ├── cargo_bot_manipulator.xacro
     ├── cargo_bot_materials.xacro
     └── cargo_bot_wheels.xacro
@@ -135,6 +136,21 @@ base_footprint
 ```
 
 The drive wheels use continuous joints, so they can be rotated manually in `joint_state_publisher_gui` while inspecting the TF frames in RViz.
+
+### Collision and inertia
+
+The robot model includes simple collision and inertial data as preparation for future Gazebo simulation.
+
+Current assumptions:
+
+- Collision geometry follows the visible robot shape closely, but uses simple primitives: boxes, cylinders, and a sphere for the rear support caster.
+- Collision geometry is intentionally simpler than the visual model so future physics simulation stays easier to debug.
+- Approximate masses are stored in `config/cargo_bot_geometry.yaml` next to the corresponding geometry values.
+- Inertia formulas are centralized in `urdf/cargo_bot_inertial.xacro`.
+- Current masses and inertia values are first-pass estimates, not final engineering values.
+- The warehouse scene is still RViz-only. Its walls, shelves, zones, and boxes are visual markers and do not physically block the robot yet.
+
+To inspect collision geometry in RViz, open `RobotModel`, disable `Visual Enabled`, and enable `Collision Enabled`.
 
 ### Manipulator
 

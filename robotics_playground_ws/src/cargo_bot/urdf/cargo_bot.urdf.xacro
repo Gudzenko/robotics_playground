@@ -2,6 +2,7 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="cargo_bot">
   <xacro:arg name="visual_mode" default="dev" />
 
+  <xacro:include filename="$(find cargo_bot)/urdf/cargo_bot_inertial.xacro" />
   <xacro:include filename="$(find cargo_bot)/urdf/cargo_bot_materials.xacro" />
   <xacro:include filename="$(find cargo_bot)/urdf/cargo_bot_base.xacro" />
   <xacro:include filename="$(find cargo_bot)/urdf/cargo_bot_wheels.xacro" />

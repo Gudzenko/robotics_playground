@@ -253,7 +253,24 @@ Add sensors only when they are needed by the next concrete step. Avoid placehold
 
 ---
 
-### 7. Gazebo / physics (later)
+### 7. Physics preparation
+
+Prepare the robot model for future Gazebo simulation by adding collision and inertial data in small, verifiable steps. This stage does not start Gazebo yet.
+
+**What needs to be done:**
+
+- [x] Add simple box collision geometry to `chassis_link`
+- [x] Add simple box collision geometry to `cargo_deck_link`
+- [x] Add collision geometry to wheels and rear support
+- [x] Add collision geometry to manipulator links
+- [x] Add approximate inertial properties to base links
+- [x] Add approximate inertial properties to wheels and rear support
+- [x] Add approximate inertial properties to manipulator links
+- [x] Document collision/inertia assumptions in README
+
+---
+
+### 8. Gazebo / physics (later)
 
 Simulate the robot in a physics environment.
 
@@ -271,7 +288,7 @@ Simulate the robot in a physics environment.
 
 ---
 
-### 8. Warehouse environment visualization
+### 9. Warehouse environment visualization
 
 Create a simple RViz-only warehouse scene around the robot. This step is for visual context and scale checks only; it does not add Gazebo physics, collision handling, mapping, or navigation.
 
@@ -301,7 +318,7 @@ Create a simple RViz-only warehouse scene around the robot. This step is for vis
 
 ---
 
-### 9. Nav2 (much later)
+### 10. Nav2 (much later)
 
 Autonomous navigation: map, planner, costmap.
 

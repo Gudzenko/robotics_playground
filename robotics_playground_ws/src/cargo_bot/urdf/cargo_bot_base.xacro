@@ -18,6 +18,11 @@
     </joint>
 
     <link name="chassis_link">
+      <xacro:box_inertial
+        mass="${geometry.chassis.mass}"
+        length="${geometry.chassis.length}"
+        width="${geometry.chassis.width}"
+        height="${geometry.chassis.height}" />
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
@@ -25,6 +30,12 @@
         </geometry>
         <material name="chassis_dark" />
       </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <box size="${geometry.chassis.length} ${geometry.chassis.width} ${geometry.chassis.height}" />
+        </geometry>
+      </collision>
     </link>
 
     <joint name="cargo_deck_joint" type="fixed">
@@ -34,6 +45,11 @@
     </joint>
 
     <link name="cargo_deck_link">
+      <xacro:box_inertial
+        mass="${geometry.cargo_deck.mass}"
+        length="${geometry.cargo_deck.length}"
+        width="${geometry.cargo_deck.width}"
+        height="${geometry.cargo_deck.height}" />
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
@@ -41,6 +57,12 @@
         </geometry>
         <material name="cargo_deck_blue" />
       </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <box size="${geometry.cargo_deck.length} ${geometry.cargo_deck.width} ${geometry.cargo_deck.height}" />
+        </geometry>
+      </collision>
     </link>
   </xacro:macro>
 </robot>

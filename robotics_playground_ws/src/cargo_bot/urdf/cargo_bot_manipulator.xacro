@@ -10,6 +10,10 @@
     </joint>
 
     <link name="${geometry.manipulator.mount.link}">
+      <xacro:cylinder_inertial
+        mass="${geometry.manipulator.mount.mass}"
+        radius="${geometry.manipulator.mount.radius}"
+        length="${geometry.manipulator.mount.height}" />
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
@@ -17,6 +21,12 @@
         </geometry>
         <material name="manipulator_accent" />
       </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <cylinder radius="${geometry.manipulator.mount.radius}" length="${geometry.manipulator.mount.height}" />
+        </geometry>
+      </collision>
     </link>
 
     <joint name="${geometry.manipulator.column.joint}" type="fixed">
@@ -26,6 +36,11 @@
     </joint>
 
     <link name="${geometry.manipulator.column.link}">
+      <xacro:box_inertial
+        mass="${geometry.manipulator.column.mass}"
+        length="${geometry.manipulator.column.length}"
+        width="${geometry.manipulator.column.width}"
+        height="${geometry.manipulator.column.height}" />
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
@@ -33,6 +48,12 @@
         </geometry>
         <material name="manipulator_steel" />
       </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <box size="${geometry.manipulator.column.length} ${geometry.manipulator.column.width} ${geometry.manipulator.column.height}" />
+        </geometry>
+      </collision>
     </link>
 
     <joint name="${geometry.manipulator.lift.joint}" type="prismatic">
@@ -44,6 +65,11 @@
     </joint>
 
     <link name="${geometry.manipulator.lift.link}">
+      <xacro:box_inertial
+        mass="${geometry.manipulator.lift.mass}"
+        length="${geometry.manipulator.lift.length}"
+        width="${geometry.manipulator.lift.width}"
+        height="${geometry.manipulator.lift.height}" />
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
@@ -51,6 +77,12 @@
         </geometry>
         <material name="manipulator_accent" />
       </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <box size="${geometry.manipulator.lift.length} ${geometry.manipulator.lift.width} ${geometry.manipulator.lift.height}" />
+        </geometry>
+      </collision>
     </link>
 
     <joint name="${geometry.manipulator.arm.housing.joint}" type="fixed">
@@ -60,6 +92,12 @@
     </joint>
 
     <link name="${geometry.manipulator.arm.housing.link}">
+      <xacro:box_inertial
+        mass="${geometry.manipulator.arm.housing.mass}"
+        length="${geometry.manipulator.arm.housing.length}"
+        width="${geometry.manipulator.arm.housing.width}"
+        height="${geometry.manipulator.arm.housing.height}"
+        origin_xyz="${geometry.manipulator.arm.housing.length / 2.0} 0 0" />
       <visual>
         <origin xyz="${geometry.manipulator.arm.housing.length / 2.0} 0 0" rpy="0 0 0" />
         <geometry>
@@ -67,6 +105,12 @@
         </geometry>
         <material name="manipulator_accent" />
       </visual>
+      <collision>
+        <origin xyz="${geometry.manipulator.arm.housing.length / 2.0} 0 0" rpy="0 0 0" />
+        <geometry>
+          <box size="${geometry.manipulator.arm.housing.length} ${geometry.manipulator.arm.housing.width} ${geometry.manipulator.arm.housing.height}" />
+        </geometry>
+      </collision>
     </link>
 
     <joint name="${geometry.manipulator.arm.extension.joint}" type="prismatic">
@@ -78,6 +122,12 @@
     </joint>
 
     <link name="${geometry.manipulator.arm.extension.link}">
+      <xacro:box_inertial
+        mass="${geometry.manipulator.arm.extension.mass}"
+        length="${geometry.manipulator.arm.extension.length}"
+        width="${geometry.manipulator.arm.extension.width}"
+        height="${geometry.manipulator.arm.extension.height}"
+        origin_xyz="${geometry.manipulator.arm.extension.length / 2.0} 0 0" />
       <visual>
         <origin xyz="${geometry.manipulator.arm.extension.length / 2.0} 0 0" rpy="0 0 0" />
         <geometry>
@@ -85,6 +135,12 @@
         </geometry>
         <material name="manipulator_steel" />
       </visual>
+      <collision>
+        <origin xyz="${geometry.manipulator.arm.extension.length / 2.0} 0 0" rpy="0 0 0" />
+        <geometry>
+          <box size="${geometry.manipulator.arm.extension.length} ${geometry.manipulator.arm.extension.width} ${geometry.manipulator.arm.extension.height}" />
+        </geometry>
+      </collision>
     </link>
 
     <joint name="${geometry.manipulator.gripper.base.joint}" type="fixed">
@@ -94,6 +150,12 @@
     </joint>
 
     <link name="${geometry.manipulator.gripper.base.link}">
+      <xacro:box_inertial
+        mass="${geometry.manipulator.gripper.base.mass}"
+        length="${geometry.manipulator.gripper.base.length}"
+        width="${geometry.manipulator.gripper.base.width}"
+        height="${geometry.manipulator.gripper.base.height}"
+        origin_xyz="${geometry.manipulator.gripper.base.length / 2.0} 0 0" />
       <visual>
         <origin xyz="${geometry.manipulator.gripper.base.length / 2.0} 0 0" rpy="0 0 0" />
         <geometry>
@@ -101,6 +163,12 @@
         </geometry>
         <material name="manipulator_accent" />
       </visual>
+      <collision>
+        <origin xyz="${geometry.manipulator.gripper.base.length / 2.0} 0 0" rpy="0 0 0" />
+        <geometry>
+          <box size="${geometry.manipulator.gripper.base.length} ${geometry.manipulator.gripper.base.width} ${geometry.manipulator.gripper.base.height}" />
+        </geometry>
+      </collision>
     </link>
 
     <joint name="${geometry.manipulator.gripper.fingers.left_joint}" type="prismatic">
@@ -112,6 +180,12 @@
     </joint>
 
     <link name="${geometry.manipulator.gripper.fingers.left_link}">
+      <xacro:box_inertial
+        mass="${geometry.manipulator.gripper.fingers.mass}"
+        length="${geometry.manipulator.gripper.fingers.length}"
+        width="${geometry.manipulator.gripper.fingers.width}"
+        height="${geometry.manipulator.gripper.fingers.height}"
+        origin_xyz="${geometry.manipulator.gripper.fingers.length / 2.0} 0 0" />
       <visual>
         <origin xyz="${geometry.manipulator.gripper.fingers.length / 2.0} 0 0" rpy="0 0 0" />
         <geometry>
@@ -119,6 +193,12 @@
         </geometry>
         <material name="safety_yellow" />
       </visual>
+      <collision>
+        <origin xyz="${geometry.manipulator.gripper.fingers.length / 2.0} 0 0" rpy="0 0 0" />
+        <geometry>
+          <box size="${geometry.manipulator.gripper.fingers.length} ${geometry.manipulator.gripper.fingers.width} ${geometry.manipulator.gripper.fingers.height}" />
+        </geometry>
+      </collision>
     </link>
 
     <joint name="${geometry.manipulator.gripper.fingers.right_joint}" type="prismatic">
@@ -131,6 +211,12 @@
     </joint>
 
     <link name="${geometry.manipulator.gripper.fingers.right_link}">
+      <xacro:box_inertial
+        mass="${geometry.manipulator.gripper.fingers.mass}"
+        length="${geometry.manipulator.gripper.fingers.length}"
+        width="${geometry.manipulator.gripper.fingers.width}"
+        height="${geometry.manipulator.gripper.fingers.height}"
+        origin_xyz="${geometry.manipulator.gripper.fingers.length / 2.0} 0 0" />
       <visual>
         <origin xyz="${geometry.manipulator.gripper.fingers.length / 2.0} 0 0" rpy="0 0 0" />
         <geometry>
@@ -138,6 +224,12 @@
         </geometry>
         <material name="safety_yellow" />
       </visual>
+      <collision>
+        <origin xyz="${geometry.manipulator.gripper.fingers.length / 2.0} 0 0" rpy="0 0 0" />
+        <geometry>
+          <box size="${geometry.manipulator.gripper.fingers.length} ${geometry.manipulator.gripper.fingers.width} ${geometry.manipulator.gripper.fingers.height}" />
+        </geometry>
+      </collision>
     </link>
 
     <joint name="${geometry.manipulator.gripper.camera.joint}" type="fixed">
@@ -147,6 +239,12 @@
     </joint>
 
     <link name="${geometry.manipulator.gripper.camera.link}">
+      <xacro:box_inertial
+        mass="${geometry.manipulator.gripper.camera.mass}"
+        length="${geometry.manipulator.gripper.camera.length}"
+        width="${geometry.manipulator.gripper.camera.width}"
+        height="${geometry.manipulator.gripper.camera.height}"
+        origin_xyz="${geometry.manipulator.gripper.camera.length / 2.0} 0 0" />
       <visual>
         <origin xyz="${geometry.manipulator.gripper.camera.bracket_x} 0 ${-geometry.manipulator.gripper.camera.bracket_z}" rpy="0 0 0" />
         <geometry>
@@ -161,6 +259,12 @@
         </geometry>
         <material name="camera_black" />
       </visual>
+      <collision>
+        <origin xyz="${geometry.manipulator.gripper.camera.length / 2.0} 0 0" rpy="0 0 0" />
+        <geometry>
+          <box size="${geometry.manipulator.gripper.camera.length} ${geometry.manipulator.gripper.camera.width} ${geometry.manipulator.gripper.camera.height}" />
+        </geometry>
+      </collision>
     </link>
   </xacro:macro>
 </robot>
