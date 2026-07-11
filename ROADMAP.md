@@ -270,20 +270,178 @@ Prepare the robot model for future Gazebo simulation by adding collision and ine
 
 ---
 
-### 8. Gazebo / physics (later)
+### 8. Gazebo world — `cargo_bot_world` package (next)
 
-Simulate the robot in a physics environment.
+Move the robot into a real Gazebo simulation with a full warehouse environment.
+This step is split into two sub-phases: first get the robot driving inside the warehouse
+(visual objects only, no collision response), then progressively enable physics and collisions.
 
-**What needs to be done:**
+The warehouse is implemented as a **separate package `cargo_bot_world`** so it can be swapped
+with the existing RViz-only scene (`warehouse_in_rviz.launch.py`) without touching robot code.
+The `/cmd_vel` + `teleop_twist_keyboard` interface stays the same throughout.
 
-- [ ] Choose simulator: **Gazebo Harmonic** (recommended for Jazzy) or Ignition
-- [ ] Add `gz_sim` / `ros_gz_bridge` integration
-- [ ] Add differential drive plugin to the robot model (`ros2_control` or Gazebo diff-drive plugin)
-- [ ] Add collision and inertial properties to robot links
-- [ ] Revisit visual/collision geometry and remove collision overlaps between chassis, wheels, cargo deck, and rear support caster
-- [ ] Create a simple world file (flat ground + walls/warehouse area)
-- [ ] Launch file that starts Gazebo + spawns the robot + starts `robot_state_publisher`
-- [ ] Verify that velocity commands (`/cmd_vel`) move the robot and odometry (`/odom`) is published
+---
+
+#### 8a. Dependencies and environment check
+
+```bash
+sudo apt install ros-jazzy-ros-gz ros-jazzy-ros-gz-bridge ros-jazzy-ros-gz-sim
+```
+
+Verify Gazebo is working:
+
+```bash
+gz sim empty.sdf
+```
+
+- [ ] Install `ros-jazzy-ros-gz`, `ros-jazzy-ros-gz-bridge`, `ros-jazzy-ros-gz-sim`
+- [ ] Verify `gz sim empty.sdf` opens the Gazebo GUI
+
+---
+
+#### 8b. Add diff-drive plugin to the robot URDF
+
+Add a `<gazebo>` plugin block to `cargo_bot_base.xacro`. This tells Gazebo how to drive the robot:
+it subscribes to `/cmd_vel` (via bridge), applies forces to the wheel joints using the physics
+engine, and publishes `/odom`. The robot gets real mass, inertia, and gravity — the world objects
+at this stage do not yet collide with it.
+All geometry parameters (`wheel_separation`, `wheel_radius`, joint names) are read directly from
+`cargo_bot_geometry.yaml` via xacro, so changing the YAML automatically updates the plugin.
+
+**Manipulator damping note:** all manipulator joints have `<dynamics damping="10000"/>` added
+to prevent them from flailing under inertial forces while the robot drives. This is a temporary
+measure — when a proper Gazebo joint controller (e.g. `ros2_control`) is added for the
+manipulator, this damping must be removed or reduced to let the controller move the joints.
+```bash
+# After editing the URDF, rebuild and verify it parses:
+cd robotics_playground_ws
+colcon build --symlink-install --packages-select cargo_bot
+```
+
+- [x] Add `gz-sim-diff-drive-system` plugin to `cargo_bot_wheels.xacro`
+- [x] Verify URDF still parses: `check_urdf` / `xacro cargo_bot.urdf.xacro`
+- [x] Document plugin parameters in README
+
+---
+
+#### 8c. Create `cargo_bot_world` package
+
+```bash
+cd robotics_playground_ws/src
+ros2 pkg create cargo_bot_world --build-type ament_python --dependencies rclpy
+mkdir -p cargo_bot_world/worlds
+mkdir -p cargo_bot_world/models
+mkdir -p cargo_bot_world/launch
+```
+
+Clone the AWS RoboMaker warehouse models:
+
+```bash
+cd cargo_bot_world
+git clone --depth 1 https://github.com/aws-robotics/aws-robomaker-small-warehouse-world.git /tmp/aws_warehouse
+cp -r /tmp/aws_warehouse/models/* models/
+```
+
+- [ ] Create `cargo_bot_world` package with `ament_python`
+- [ ] Add `worlds/`, `models/`, `launch/` directories
+- [ ] Copy AWS RoboMaker model files into `models/`
+- [ ] Register data files in `setup.py` (worlds, models, launch)
+
+---
+
+#### 8d. Adapt AWS warehouse world for Gazebo Harmonic
+
+Create `worlds/small_warehouse.sdf` based on the AWS world file.
+Key changes from the original (which targets classic Gazebo 11 / ROS 1):
+
+- Replace `<physics type="ode">` with `<physics type="ignored">`
+- Add mandatory gz-sim system plugins: `Physics`, `UserCommands`, `SceneBroadcaster`
+- Add `MinimalScene` + `GzSceneManager` GUI plugins for the 3D view
+- All warehouse objects: `<static>true</static>`, **no `<collision>` tags** — visual only at this stage
+- Robot spawn position: inside the warehouse near the loading zone
+
+**Why no collision on objects yet:** the robot should drive through everything at first. Adding
+`<collision>` to individual objects is the explicit step that enables physics for that object (see 8f).
+
+- [x] Create `worlds/small_warehouse.sdf` adapted for Harmonic
+- [x] Verify the world opens in Gazebo without errors: `gz sim worlds/small_warehouse.sdf`
+- [x] Confirm all warehouse models load (shelves, walls, ground, lamps)
+
+---
+
+#### 8e. Launch file `gazebo_warehouse.launch.py`
+
+The launch file starts:
+
+1. Gazebo with `small_warehouse.sdf`
+2. `robot_state_publisher` — reads URDF, publishes TF
+3. `ros_gz_sim` spawner — spawns `cargo_bot` into the running Gazebo world
+4. `ros_gz_bridge` — bridges topics between Gazebo and ROS 2:
+   - `/cmd_vel` ROS 2 → Gazebo
+   - `/odom` Gazebo → ROS 2
+   - `/tf` Gazebo → ROS 2
+   - `/joint_states` Gazebo → ROS 2
+   - `/clock` Gazebo → ROS 2
+
+```bash
+cd robotics_playground_ws
+colcon build --symlink-install --packages-select cargo_bot cargo_bot_world
+source install/setup.bash
+ros2 launch cargo_bot_world gazebo_warehouse.launch.py
+```
+
+In a second terminal:
+
+```bash
+source install/setup.bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -p repeat_rate:=10.0
+```
+
+**Expected result:** the robot appears inside the warehouse, can be driven with the keyboard,
+and passes through shelves and walls (no collision response yet).
+
+Useful checks while running:
+
+```bash
+ros2 topic list                          # should include /cmd_vel, /odom, /joint_states
+ros2 topic echo /odom                    # robot position updates while driving
+ros2 topic echo /cmd_vel                 # teleop commands arriving
+ros2 run tf2_tools view_frames           # TF tree: odom → base_footprint → ...
+```
+
+- [x] Create `launch/gazebo_warehouse.launch.py`
+- [x] Verify robot spawns in the warehouse
+- [x] Verify `/cmd_vel` moves the robot in Gazebo
+- [x] Verify `/odom` is published and updates while driving
+- [x] Document launch command and bridge topics in README
+
+---
+
+#### 8f. Add physics / collision objects (later, incremental)
+
+Enable collision response one object at a time by adding `<collision>` tags. This lets you
+verify each constraint independently before adding the next one.
+
+Planned order:
+
+- [x] Add `<collision>` to the floor (ground plane) — robot should not fall through
+- [x] Add `<collision>` to the warehouse walls — robot stops at walls
+- [x] Add `<collision>` to shelf models — robot stops at shelves
+- [x] Test: drive into a wall, robot stops; drive away, robot moves
+- [x] Document which objects have collision enabled in README
+
+**Note:** collision came for free — all AWS RoboMaker models already include `<collision>`
+geometry in their own `model.sdf` files. Static objects in Gazebo do not move but do
+generate collision responses. No manual changes were needed.
+
+---
+
+#### 8g. Dynamic objects (later, optional)
+
+Make some objects non-static so they can be pushed by the robot.
+
+- [ ] Set selected boxes / pallets to `<static>false</static>`
+- [ ] Verify the robot can push them
 - [ ] Document in README
 
 ---
@@ -337,7 +495,7 @@ Autonomous navigation: map, planner, costmap.
 
 ```
 robotics_playground_ws/src/
-├── learning/                        # main educational package (ament_python)
+├── learning/                        # educational package (ament_python)
 │   ├── learning/
 │   │   ├── constants.py
 │   │   ├── topics/
@@ -350,13 +508,34 @@ robotics_playground_ws/src/
 │   │   ├── diagnostics/
 │   │   └── custom_interfaces/
 │   └── launch/
-└── learning_interfaces/             # custom msg/srv/action types (ament_cmake)
-    ├── msg/RobotStatus.msg
-    ├── srv/SetPatrolPoints.srv
-    └── action/Patrol.action
+├── learning_interfaces/             # custom msg/srv/action types (ament_cmake)
+│   ├── msg/RobotStatus.msg
+│   ├── srv/SetPatrolPoints.srv
+│   └── action/Patrol.action
+├── cargo_bot/                       # robot model, URDF/Xacro, nodes, RViz config
+│   ├── cargo_bot/
+│   │   ├── simple_diff_drive_sim.py
+│   │   ├── manipulator_control_node.py
+│   │   ├── passive_joint_state_publisher.py
+│   │   ├── warehouse_scene_publisher.py
+│   │   └── warehouse_scene/
+│   ├── urdf/
+│   ├── config/
+│   ├── launch/
+│   └── rviz/
+├── cargo_bot_interfaces/            # cargo_bot custom interfaces (ament_cmake)
+│   ├── action/MoveManipulatorElement.action
+│   ├── srv/CancelManipulatorOperation.srv
+│   ├── srv/GetManipulatorState.srv
+│   └── msg/ManipulatorElementState.msg
+└── cargo_bot_world/                 # Gazebo world: warehouse environment (ament_python)
+    ├── worlds/
+    │   └── small_warehouse.sdf      # AWS RoboMaker warehouse adapted for Harmonic
+    ├── models/
+    │   └── aws_robomaker_warehouse_*/
+    └── launch/
+        └── gazebo_warehouse.launch.py
 ```
 
-**To be added:**
-```
-└── cargo_bot/                       # robot model, URDF/Xacro, RViz config, display launch
-```
+**Environment swap:** `warehouse_in_rviz.launch.py` (RViz-only, no physics) can be replaced
+with `gazebo_warehouse.launch.py` (Gazebo, real physics) — the `/cmd_vel` interface is the same.

@@ -313,6 +313,110 @@ This is visual context only. It does not add Gazebo physics, collision handling,
 
 ---
 
+## Package: cargo_bot_world
+
+A separate Gazebo simulation package. It replaces the RViz-only warehouse scene with a real
+physics-based environment where the robot can drive and collide with objects.
+
+The `/cmd_vel` interface stays the same — you can switch between `warehouse_in_rviz.launch.py`
+and `gazebo_warehouse.launch.py` without changing any robot code.
+
+The robot keeps full manipulator control in Gazebo mode. The wheels are driven by the Gazebo
+diff-drive physics plugin (replaces `simple_diff_drive_sim`). The manipulator is still controlled
+by `manipulator_control_node` via the same action interface as before.
+
+### Gazebo diff-drive plugin
+
+The robot URDF includes a Gazebo diff-drive plugin in `urdf/cargo_bot_wheels.xacro`.
+It is active only when the robot is spawned in Gazebo — it has no effect in RViz mode.
+
+| Parameter | Value | Source |
+|---|---|---|
+| `left_joint` | `left_wheel_joint` | `cargo_bot_geometry.yaml` |
+| `right_joint` | `right_wheel_joint` | `cargo_bot_geometry.yaml` |
+| `wheel_separation` | `2 × drive_wheels.y_offset` = 1.16 m | `cargo_bot_geometry.yaml` |
+| `wheel_radius` | `drive_wheels.radius` = 0.23 m | `cargo_bot_geometry.yaml` |
+| `topic` | `/cmd_vel` | — |
+| `odom_topic` | `/odom` | — |
+| `frame_id` | `odom` | — |
+| `child_frame_id` | `base_footprint` | — |
+
+All geometry parameters are read directly from `cargo_bot_geometry.yaml` via xacro,
+so changing the YAML automatically updates the plugin.
+
+---
+
+### Gazebo warehouse simulation
+
+Launch the robot inside the Gazebo warehouse with full physics:
+
+Terminal 1:
+
+```bash
+cd robotics_playground_ws
+colcon build --symlink-install --packages-select cargo_bot cargo_bot_interfaces cargo_bot_world
+source install/setup.bash
+ros2 launch cargo_bot_world gazebo_warehouse.launch.py
+```
+
+Press **Play** (▶) in the bottom-left corner of Gazebo after it opens.
+
+Terminal 2:
+
+```bash
+source install/setup.bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -p repeat_rate:=10.0
+```
+
+This launch starts:
+
+- `gz sim` — Gazebo Harmonic with the AWS RoboMaker warehouse world
+- `robot_state_publisher` — publishes TF from URDF
+- `ros_gz_sim create` — spawns `cargo_bot` into the Gazebo world
+- `ros_gz_bridge` — bridges `/cmd_vel`, `/odom`, `/tf`, `/joint_states`, `/clock`
+- `manipulator_control_node` — manipulator action interface (same as RViz mode)
+
+Bridged topics:
+
+| Topic | Direction | Type |
+|---|---|---|
+| `/cmd_vel` | ROS 2 → Gazebo | `geometry_msgs/Twist` |
+| `/odom` | Gazebo → ROS 2 | `nav_msgs/Odometry` |
+| `/tf` | Gazebo → ROS 2 | `tf2_msgs/TFMessage` |
+| `/joint_states` | Gazebo ↔ ROS 2 | `sensor_msgs/JointState` |
+| `/clock` | Gazebo → ROS 2 | `rosgraph_msgs/Clock` |
+
+The world starts **paused** — press Play before driving.
+
+All warehouse objects (walls, shelves, ground) have collision geometry from the AWS models.
+The robot stops at walls and shelves. Manipulator joints are held in place by damping
+and do not jerk during movement.
+
+---
+
+### Adaptation notes for Gazebo Harmonic
+
+- Roof model excluded — it blocks the top-down camera view.
+- `aws_robomaker_warehouse_GroundB_01` and `aws_robomaker_warehouse_RoofB_01` had inertia tensors violating the positive-definite constraint required by DART. Fixed by correcting the `iyy` values.
+- All warehouse objects are `<static>true</static>` — immovable but still generate collision responses.
+- `InteractiveViewControl` GUI plugin is required for mouse camera navigation in Gazebo Harmonic.
+- Manipulator joints have `<dynamics damping="500"/>` to prevent flailing under inertia. Must be removed when adding a proper Gazebo joint controller.
+
+### License note for warehouse models
+
+The initial version of `cargo_bot_world` uses warehouse environment models from the
+[AWS RoboMaker Small Warehouse World](https://github.com/aws-robotics/aws-robomaker-small-warehouse-world)
+project (MIT-0 license for the package itself; individual 3D model assets may carry separate terms).
+
+These models are suitable for this non-commercial learning project.
+If this project is ever used in a commercial product, the 3D warehouse models must be
+replaced with models that have a compatible commercial license, or a separate license must
+be obtained. Free alternatives include models from
+[Gazebo Fuel](https://app.gazebosim.org/fuel) under CC BY 4.0, or custom SDF primitives
+with no external dependencies.
+
+---
+
 ## ROS 2 CLI reference
 
 ### Topics

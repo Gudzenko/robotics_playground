@@ -7,6 +7,7 @@
       <origin xyz="${geometry.manipulator.mount.x} ${geometry.manipulator.mount.y} ${geometry.manipulator.mount.z}" rpy="0 0 0" />
       <axis xyz="0 0 1" />
       <limit lower="${geometry.manipulator.mount.lower}" upper="${geometry.manipulator.mount.upper}" effort="${geometry.manipulator.mount.effort}" velocity="${geometry.manipulator.mount.velocity}" />
+      <dynamics damping="500" friction="100"/>
     </joint>
 
     <link name="${geometry.manipulator.mount.link}">
@@ -62,6 +63,7 @@
       <origin xyz="0 0 ${geometry.manipulator.lift.z}" rpy="0 0 0" />
       <axis xyz="0 0 1" />
       <limit lower="${geometry.manipulator.lift.lower}" upper="${geometry.manipulator.lift.upper}" effort="${geometry.manipulator.lift.effort}" velocity="${geometry.manipulator.lift.velocity}" />
+      <dynamics damping="500" friction="100"/>
     </joint>
 
     <link name="${geometry.manipulator.lift.link}">
@@ -119,6 +121,7 @@
       <origin xyz="${geometry.manipulator.arm.extension.x} ${geometry.manipulator.arm.extension.y} ${geometry.manipulator.arm.extension.z}" rpy="0 0 0" />
       <axis xyz="1 0 0" />
       <limit lower="${geometry.manipulator.arm.extension.lower}" upper="${geometry.manipulator.arm.extension.upper}" effort="${geometry.manipulator.arm.extension.effort}" velocity="${geometry.manipulator.arm.extension.velocity}" />
+      <dynamics damping="500" friction="100"/>
     </joint>
 
     <link name="${geometry.manipulator.arm.extension.link}">
@@ -177,6 +180,7 @@
       <origin xyz="${geometry.manipulator.gripper.fingers.x} ${geometry.manipulator.gripper.fingers.y_offset} ${geometry.manipulator.gripper.fingers.z}" rpy="0 0 0" />
       <axis xyz="0 1 0" />
       <limit lower="${geometry.manipulator.gripper.fingers.lower}" upper="${geometry.manipulator.gripper.fingers.upper}" effort="${geometry.manipulator.gripper.fingers.effort}" velocity="${geometry.manipulator.gripper.fingers.velocity}" />
+      <dynamics damping="100" friction="20"/>
     </joint>
 
     <link name="${geometry.manipulator.gripper.fingers.left_link}">

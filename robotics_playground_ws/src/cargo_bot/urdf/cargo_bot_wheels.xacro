@@ -95,5 +95,21 @@
         </geometry>
       </collision>
     </link>
+
+    <gazebo>
+      <plugin filename="gz-sim-diff-drive-system"
+              name="gz::sim::systems::DiffDrive">
+        <left_joint>${geometry.drive_wheels.left_joint}</left_joint>
+        <right_joint>${geometry.drive_wheels.right_joint}</right_joint>
+        <wheel_separation>${2 * geometry.drive_wheels.y_offset}</wheel_separation>
+        <wheel_radius>${geometry.drive_wheels.radius}</wheel_radius>
+        <topic>/cmd_vel</topic>
+        <odom_topic>/odom</odom_topic>
+        <tf_topic>/tf</tf_topic>
+        <frame_id>odom</frame_id>
+        <child_frame_id>${geometry.frames.base_footprint}</child_frame_id>
+        <odom_publish_frequency>50</odom_publish_frequency>
+      </plugin>
+    </gazebo>
   </xacro:macro>
 </robot>
