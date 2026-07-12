@@ -1,0 +1,267 @@
+<?xml version="1.0"?>
+<sdf version="1.8">
+  <model name="room_d">
+    <static>true</static>
+    <pose>0 0 0 0 0 0</pose>
+    <link name="floor_d">
+      <pose>-9.75 10.5 0.002 0 0 0</pose>
+      <visual name="vis">
+        <geometry><box><size>7.5 7.5 0.004</size></box></geometry>
+        <material><ambient>0.76 0.83 0.71 1</ambient><diffuse>0.76 0.83 0.71 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="wall_d_w">
+      <pose>-13.575 10.5 2.0 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.15 7.5 4.0</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.15 7.5 4.0</size></box></geometry>
+        <material><ambient>0.6 0.6 0.65 1</ambient><diffuse>0.6 0.6 0.65 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="wall_d_n">
+      <pose>-9.8625 14.325 2.0 0 0 0</pose>
+      <collision name="col"><geometry><box><size>7.725 0.15 4.0</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>7.725 0.15 4.0</size></box></geometry>
+        <material><ambient>0.6 0.6 0.65 1</ambient><diffuse>0.6 0.6 0.65 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="wall_d_e_bot">
+      <pose>-6.075 7.95 2.0 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.15 2.4000000000000004 4.0</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.15 2.4000000000000004 4.0</size></box></geometry>
+        <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="wall_d_e_top">
+      <pose>-6.075 13.05 2.0 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.15 2.4000000000000004 4.0</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.15 2.4000000000000004 4.0</size></box></geometry>
+        <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="wall_d_e_door_top">
+      <pose>-6.075 10.5 3.5 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.15 2.7 1.0</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.15 2.7 1.0</size></box></geometry>
+        <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="frm_dc_l">
+      <pose>-6.075 9.06 1.5 0 0 0</pose>
+      <visual name="vis">
+        <geometry><box><size>0.28 0.18 3.0</size></box></geometry>
+        <material><ambient>0.5 0.32 0.12 1</ambient><diffuse>0.5 0.32 0.12 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="frm_dc_r">
+      <pose>-6.075 11.94 1.5 0 0 0</pose>
+      <visual name="vis">
+        <geometry><box><size>0.28 0.18 3.0</size></box></geometry>
+        <material><ambient>0.5 0.32 0.12 1</ambient><diffuse>0.5 0.32 0.12 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="frm_dc_t">
+      <pose>-6.075 10.5 3.15 0 0 0</pose>
+      <visual name="vis">
+        <geometry><box><size>0.28 2.8800000000000003 0.3</size></box></geometry>
+        <material><ambient>0.5 0.32 0.12 1</ambient><diffuse>0.5 0.32 0.12 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="desk_d1_top">
+      <pose>-11.25 9.3 0.72 0 0 0</pose>
+      <collision name="col"><geometry><box><size>1.4 0.7 0.06</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>1.4 0.7 0.06</size></box></geometry>
+        <material><ambient>0.68 0.54 0.36 1</ambient><diffuse>0.68 0.54 0.36 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="desk_d1_leg0">
+      <pose>-11.879999999999999 9.020000000000001 0.345 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.06 0.06 0.69</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.06 0.06 0.69</size></box></geometry>
+        <material><ambient>0.68 0.54 0.36 1</ambient><diffuse>0.68 0.54 0.36 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="desk_d1_leg1">
+      <pose>-11.879999999999999 9.58 0.345 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.06 0.06 0.69</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.06 0.06 0.69</size></box></geometry>
+        <material><ambient>0.68 0.54 0.36 1</ambient><diffuse>0.68 0.54 0.36 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="desk_d1_leg2">
+      <pose>-10.620000000000001 9.020000000000001 0.345 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.06 0.06 0.69</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.06 0.06 0.69</size></box></geometry>
+        <material><ambient>0.68 0.54 0.36 1</ambient><diffuse>0.68 0.54 0.36 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="desk_d1_leg3">
+      <pose>-10.620000000000001 9.58 0.345 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.06 0.06 0.69</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.06 0.06 0.69</size></box></geometry>
+        <material><ambient>0.68 0.54 0.36 1</ambient><diffuse>0.68 0.54 0.36 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="chair_d1_seat">
+      <pose>-12.0 8.25 0.65 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.63 0.63 0.06</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.63 0.63 0.06</size></box></geometry>
+        <material><ambient>0.58 0.44 0.28 1</ambient><diffuse>0.58 0.44 0.28 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="chair_d1_bk">
+      <pose>-12.0 7.965 1.0550000000000002 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.63 0.06 0.75</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.63 0.06 0.75</size></box></geometry>
+        <material><ambient>0.58 0.44 0.28 1</ambient><diffuse>0.58 0.44 0.28 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="chair_d1_leg0">
+      <pose>-12.265 7.985 0.31000000000000005 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.06 0.06 0.6200000000000001</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.06 0.06 0.6200000000000001</size></box></geometry>
+        <material><ambient>0.58 0.44 0.28 1</ambient><diffuse>0.58 0.44 0.28 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="chair_d1_leg1">
+      <pose>-12.265 8.515 0.31000000000000005 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.06 0.06 0.6200000000000001</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.06 0.06 0.6200000000000001</size></box></geometry>
+        <material><ambient>0.58 0.44 0.28 1</ambient><diffuse>0.58 0.44 0.28 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="chair_d1_leg2">
+      <pose>-11.735 7.985 0.31000000000000005 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.06 0.06 0.6200000000000001</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.06 0.06 0.6200000000000001</size></box></geometry>
+        <material><ambient>0.58 0.44 0.28 1</ambient><diffuse>0.58 0.44 0.28 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="chair_d1_leg3">
+      <pose>-11.735 8.515 0.31000000000000005 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.06 0.06 0.6200000000000001</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.06 0.06 0.6200000000000001</size></box></geometry>
+        <material><ambient>0.58 0.44 0.28 1</ambient><diffuse>0.58 0.44 0.28 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="desk_d2_top">
+      <pose>-8.7 12.75 0.72 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.7 1.4 0.06</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.7 1.4 0.06</size></box></geometry>
+        <material><ambient>0.68 0.54 0.36 1</ambient><diffuse>0.68 0.54 0.36 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="desk_d2_leg0">
+      <pose>-8.979999999999999 12.120000000000001 0.345 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.06 0.06 0.69</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.06 0.06 0.69</size></box></geometry>
+        <material><ambient>0.68 0.54 0.36 1</ambient><diffuse>0.68 0.54 0.36 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="desk_d2_leg1">
+      <pose>-8.979999999999999 13.379999999999999 0.345 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.06 0.06 0.69</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.06 0.06 0.69</size></box></geometry>
+        <material><ambient>0.68 0.54 0.36 1</ambient><diffuse>0.68 0.54 0.36 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="desk_d2_leg2">
+      <pose>-8.42 12.120000000000001 0.345 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.06 0.06 0.69</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.06 0.06 0.69</size></box></geometry>
+        <material><ambient>0.68 0.54 0.36 1</ambient><diffuse>0.68 0.54 0.36 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="desk_d2_leg3">
+      <pose>-8.42 13.379999999999999 0.345 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.06 0.06 0.69</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.06 0.06 0.69</size></box></geometry>
+        <material><ambient>0.68 0.54 0.36 1</ambient><diffuse>0.68 0.54 0.36 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="chair_d2_seat">
+      <pose>-7.5 12.75 0.65 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.63 0.63 0.06</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.63 0.63 0.06</size></box></geometry>
+        <material><ambient>0.58 0.44 0.28 1</ambient><diffuse>0.58 0.44 0.28 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="chair_d2_bk">
+      <pose>-7.215 12.75 1.0550000000000002 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.06 0.63 0.75</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.06 0.63 0.75</size></box></geometry>
+        <material><ambient>0.58 0.44 0.28 1</ambient><diffuse>0.58 0.44 0.28 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="chair_d2_leg0">
+      <pose>-7.765 12.485 0.31000000000000005 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.06 0.06 0.6200000000000001</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.06 0.06 0.6200000000000001</size></box></geometry>
+        <material><ambient>0.58 0.44 0.28 1</ambient><diffuse>0.58 0.44 0.28 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="chair_d2_leg1">
+      <pose>-7.765 13.015 0.31000000000000005 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.06 0.06 0.6200000000000001</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.06 0.06 0.6200000000000001</size></box></geometry>
+        <material><ambient>0.58 0.44 0.28 1</ambient><diffuse>0.58 0.44 0.28 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="chair_d2_leg2">
+      <pose>-7.235 12.485 0.31000000000000005 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.06 0.06 0.6200000000000001</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.06 0.06 0.6200000000000001</size></box></geometry>
+        <material><ambient>0.58 0.44 0.28 1</ambient><diffuse>0.58 0.44 0.28 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="chair_d2_leg3">
+      <pose>-7.235 13.015 0.31000000000000005 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.06 0.06 0.6200000000000001</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.06 0.06 0.6200000000000001</size></box></geometry>
+        <material><ambient>0.58 0.44 0.28 1</ambient><diffuse>0.58 0.44 0.28 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="plant_d_pot">
+      <pose>-12.75 13.2 0.225 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.33 0.33 0.45</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.33 0.33 0.45</size></box></geometry>
+        <material><ambient>0.72 0.35 0.2 1</ambient><diffuse>0.72 0.35 0.2 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="plant_d_leaves">
+      <pose>-12.75 13.2 0.78 0 0 0</pose>
+      <collision name="col"><geometry><box><size>0.69 0.69 0.66</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>0.69 0.69 0.66</size></box></geometry>
+        <material><ambient>0.22 0.55 0.18 1</ambient><diffuse>0.22 0.55 0.18 1</diffuse></material>
+      </visual>
+    </link>
+  </model>
+</sdf>

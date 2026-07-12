@@ -346,6 +346,138 @@ so changing the YAML automatically updates the plugin.
 
 ---
 
+### Gazebo indoor rooms world
+
+A second Gazebo environment: a multi-room building with a circular driving route.
+
+```bash
+cd robotics_playground_ws/src/cargo_bot_world
+GZ_SIM_RESOURCE_PATH=$(pwd)/models gz sim worlds/indoor_rooms.sdf
+```
+
+Press **Play** (▶) in Gazebo after it opens.
+
+**Room layout:**
+
+```
++----Room D----+---corridor---+----Room E----+
+|              |              |              |
++----Room B----+              +----Room C----+
+     |                               |
+[Room G]       +----Room A----+  [Room F]
+(dead-end)          |          (dead-end)
+               [entry/outside]
+```
+
+| Room | Size | Floor colour | Notes |
+|---|---|---|---|
+| A (entry hall) | 8 × 8 m | warm beige | start position, door to outside |
+| B (left) | 5 × 5 m | light beige | |
+| C (right) | 5 × 5 m | light blue | |
+| D (back-left) | 5 × 5 m | light green | |
+| E (back-right) | 5 × 5 m | light orange | |
+| F (dead-end) | 5 × 5 m | light purple | east of C, no exit |
+| G (dead-end) | 5 × 5 m | warm yellow | west of B, no exit |
+| Corridor | 8 × 2 m | grey | connects D and E |
+
+Circular route: **A → B → D → corridor → E → C → A**
+
+All doors are 1.8 m wide with visible wood-frame box primitives.
+Building geometry is split into **9 separate model files** — one per room — so each room can be furnished independently:
+
+| Model | Contents |
+|---|---|
+| `building_ground/` | Outdoor ground plane |
+| `room_a/` | Entry hall walls, entry door frame, A↔B and A↔C frames |
+| `room_b/` | Left room walls, B↔D and B↔G door frames |
+| `room_c/` | Right room walls, C↔E and C↔F door frames |
+| `room_d/` | Back-left room walls, D↔corridor door frame |
+| `room_e/` | Back-right room walls, E↔corridor door frame |
+| `room_f/` | Dead-end room walls (east of C) |
+| `room_g/` | Dead-end room walls (west of B) |
+| `room_corridor/` | Corridor walls and floor |
+
+To add furniture to a room: add `<link>` elements to the room's `model.sdf`.
+The world file `worlds/indoor_rooms.sdf` simply includes all 9 models at `<pose>0 0 0 0 0 0</pose>`.
+
+### Parametric world builder
+
+Room geometry and furniture are generated from Python source files in `scripts/`.
+Edit a room definition, then re-run the generator to update `model.sdf`.
+
+```bash
+cd robotics_playground_ws/src/cargo_bot_world/scripts
+python3 generate.py
+```
+
+Library structure:
+
+```
+scripts/
+  generate.py                  ← entry point: writes all model.sdf files
+  world_builder/
+    constants.py               ← shared dimensions and colours
+    sdf_helpers.py             ← solid_link, visual_link, model_file
+    wall.py                    ← solid_wall_y/x, wall_with_door_y/x, wall_gap
+    door_frame.py              ← door_frame_y/x
+    floor.py                   ← room_floor, ground_plane
+    furniture.py               ← shelf_y, shelf_x, desk, chair, plant, floor_box
+    room.py                    ← Room class
+    rooms/
+      room_a.py  … room_g.py   ← one file per room (walls + furniture)
+      room_corridor.py
+      building_ground.py
+```
+
+### Gazebo indoor rooms simulation
+
+```bash
+cd robotics_playground_ws
+colcon build --symlink-install --packages-select cargo_bot cargo_bot_interfaces cargo_bot_world
+source install/setup.bash
+ros2 launch cargo_bot_world indoor_rooms.launch.py
+```
+
+Press **Play** (▶) in Gazebo. Robot spawns in the centre of Room A facing north.
+
+Terminal 2 — keyboard teleoperation:
+
+```bash
+source install/setup.bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -p repeat_rate:=10.0
+```
+
+**Room layout:**
+
+```
+     +----Room D (office)----+---corridor---+----Room E (office)----+
+     | 2 desks + chairs      |              | 2 desks + chairs      |
+     +----Room B (shelves)---+              +----Room C (shelves)---+
+[Room G]     |                                        |          [Room F]
+(shelves) +--+------------Room A (entry hall)----------+--+     (shelves)
+             |   4 shelf rows, 4 plants, floor boxes      |
+             |           [entry / outside]                |
+```
+
+Circular route: **A → B → D → corridor → E → C → A**
+
+Robot start: `(0, 0, 0.1)` — centre of Room A, facing north (+Y).
+
+**Navigation note:** all world dimensions are scaled ×1.5 relative to the original design
+so the robot (1.0m wide) can navigate comfortably: doors are 2.7m wide, rooms 7.5×7.5m,
+corridor 3m wide. Furniture and boxes are kept away from door zones.
+
+To regenerate room models after changing a room definition:
+
+```bash
+cd robotics_playground_ws/src/cargo_bot_world/scripts
+python3 generate.py
+# then rebuild
+cd .. && colcon build --symlink-install --packages-select cargo_bot_world
+```
+
+---
+
 ### Gazebo warehouse simulation
 
 Launch the robot inside the Gazebo warehouse with full physics:

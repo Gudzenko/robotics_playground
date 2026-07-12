@@ -1,0 +1,222 @@
+<?xml version="1.0"?>
+<sdf version="1.8">
+  <world name="indoor_rooms">
+
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <plugin filename="gz-sim-physics-system"       name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+
+    <gui fullscreen="0">
+      <plugin filename="MinimalScene" name="3D View">
+        <gz-gui>
+          <title>3D View</title>
+          <property type="bool" key="showTitleBar">false</property>
+          <property type="string" key="state">docked</property>
+        </gz-gui>
+        <engine>ogre2</engine>
+        <scene>scene</scene>
+        <ambient_light>0.5 0.5 0.5</ambient_light>
+        <background_color>0.65 0.75 0.90</background_color>
+        <camera_pose>0 -28 32 0 0.85 1.5708</camera_pose>
+        <camera_clip><near>0.25</near><far>2000</far></camera_clip>
+        <camera_clip><near>0.25</near><far>500</far></camera_clip>
+      </plugin>
+      <plugin filename="GzSceneManager" name="Scene Manager">
+        <gz-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="width" type="double">5</property>
+          <property key="height" type="double">5</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+        </gz-gui>
+      </plugin>
+      <plugin filename="EntityContextMenuPlugin" name="Entity context menu">
+        <gz-gui>
+          <property key="state" type="string">floating</property>
+          <property key="width" type="double">5</property>
+          <property key="height" type="double">5</property>
+          <property key="showTitleBar" type="bool">false</property>
+        </gz-gui>
+      </plugin>
+      <plugin filename="WorldControl" name="World control">
+        <gz-gui>
+          <title>World control</title>
+          <property type="bool" key="showTitleBar">false</property>
+          <property type="bool" key="resizable">false</property>
+          <property type="double" key="height">72</property>
+          <property type="double" key="width">121</property>
+          <property type="double" key="z">1</property>
+          <property type="string" key="state">floating</property>
+          <anchors target="3D View">
+            <line own="left" target="left"/>
+            <line own="bottom" target="bottom"/>
+          </anchors>
+        </gz-gui>
+        <play_pause>true</play_pause>
+        <step>true</step>
+        <start_paused>true</start_paused>
+        <service>/world/indoor_rooms/control</service>
+        <stats_topic>/world/indoor_rooms/stats</stats_topic>
+      </plugin>
+      <plugin filename="WorldStats" name="World stats">
+        <gz-gui>
+          <title>World stats</title>
+          <property type="bool" key="showTitleBar">false</property>
+          <property type="bool" key="resizable">false</property>
+          <property type="double" key="height">110</property>
+          <property type="double" key="width">290</property>
+          <property type="double" key="z">1</property>
+          <property type="string" key="state">floating</property>
+          <anchors target="3D View">
+            <line own="right" target="right"/>
+            <line own="bottom" target="bottom"/>
+          </anchors>
+        </gz-gui>
+        <sim_time>true</sim_time>
+        <real_time>true</real_time>
+        <real_time_factor>true</real_time_factor>
+        <iterations>true</iterations>
+        <topic>/world/indoor_rooms/stats</topic>
+      </plugin>
+      <plugin filename="TransformControl" name="Transform control">
+        <gz-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="width" type="double">250</property>
+          <property key="height" type="double">50</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+          <anchors target="3D View">
+            <line own="left" target="left"/>
+            <line own="top" target="top"/>
+          </anchors>
+        </gz-gui>
+      </plugin>
+      <plugin filename="EntityTree" name="Entity tree"/>
+      <plugin filename="InteractiveViewControl" name="Interactive view control"/>
+    </gui>
+
+    <light name="sun" type="directional">
+      <pose>0 0 100 0 0 0</pose>
+      <diffuse>0.85 0.85 0.85 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>0.3 0.3 -1</direction>
+      <cast_shadows>false</cast_shadows>
+    </light>
+
+    <light name="light_a" type="point">
+      <pose>0 0 2.8 0 0 0</pose>
+      <diffuse>1 0.98 0.88 1</diffuse>
+      <specular>0.1 0.1 0.1 1</specular>
+      <attenuation><range>15</range><constant>0.3</constant><linear>0.04</linear><quadratic>0.005</quadratic></attenuation>
+      <cast_shadows>false</cast_shadows>
+    </light>
+    <light name="light_b" type="point">
+      <pose>-6.5 2.0 2.8 0 0 0</pose>
+      <diffuse>1 0.98 0.88 1</diffuse>
+      <specular>0.1 0.1 0.1 1</specular>
+      <attenuation><range>10</range><constant>0.35</constant><linear>0.05</linear><quadratic>0.008</quadratic></attenuation>
+      <cast_shadows>false</cast_shadows>
+    </light>
+    <light name="light_c" type="point">
+      <pose>6.5 2.0 2.8 0 0 0</pose>
+      <diffuse>1 0.98 0.88 1</diffuse>
+      <specular>0.1 0.1 0.1 1</specular>
+      <attenuation><range>10</range><constant>0.35</constant><linear>0.05</linear><quadratic>0.008</quadratic></attenuation>
+      <cast_shadows>false</cast_shadows>
+    </light>
+    <light name="light_d" type="point">
+      <pose>-6.5 7.0 2.8 0 0 0</pose>
+      <diffuse>1 0.98 0.88 1</diffuse>
+      <specular>0.1 0.1 0.1 1</specular>
+      <attenuation><range>10</range><constant>0.35</constant><linear>0.05</linear><quadratic>0.008</quadratic></attenuation>
+      <cast_shadows>false</cast_shadows>
+    </light>
+    <light name="light_e" type="point">
+      <pose>6.5 7.0 2.8 0 0 0</pose>
+      <diffuse>1 0.98 0.88 1</diffuse>
+      <specular>0.1 0.1 0.1 1</specular>
+      <attenuation><range>10</range><constant>0.35</constant><linear>0.05</linear><quadratic>0.008</quadratic></attenuation>
+      <cast_shadows>false</cast_shadows>
+    </light>
+    <light name="light_f" type="point">
+      <pose>11.5 2.0 2.8 0 0 0</pose>
+      <diffuse>1 0.98 0.88 1</diffuse>
+      <specular>0.1 0.1 0.1 1</specular>
+      <attenuation><range>10</range><constant>0.35</constant><linear>0.05</linear><quadratic>0.008</quadratic></attenuation>
+      <cast_shadows>false</cast_shadows>
+    </light>
+    <light name="light_g" type="point">
+      <pose>-11.5 2.0 2.8 0 0 0</pose>
+      <diffuse>1 0.98 0.88 1</diffuse>
+      <specular>0.1 0.1 0.1 1</specular>
+      <attenuation><range>10</range><constant>0.35</constant><linear>0.05</linear><quadratic>0.008</quadratic></attenuation>
+      <cast_shadows>false</cast_shadows>
+    </light>
+    <light name="light_cor" type="point">
+      <pose>0 7.0 2.8 0 0 0</pose>
+      <diffuse>1 0.98 0.88 1</diffuse>
+      <specular>0.1 0.1 0.1 1</specular>
+      <attenuation><range>12</range><constant>0.4</constant><linear>0.06</linear><quadratic>0.01</quadratic></attenuation>
+      <cast_shadows>false</cast_shadows>
+    </light>
+
+    <!--
+      Layout: 7 rooms (A–G) + corridor.
+      Circular route: A → B → D → corridor → E → C → A
+      Rooms F (east of C) and G (west of B) are dead-ends.
+      Robot starts at (0, -6, 0) outside Room A's entry door.
+    -->
+
+    <include>
+      <name>building_ground</name>
+      <uri>model://building_ground</uri>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+    <include>
+      <name>room_a</name>
+      <uri>model://room_a</uri>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+    <include>
+      <name>room_b</name>
+      <uri>model://room_b</uri>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+    <include>
+      <name>room_c</name>
+      <uri>model://room_c</uri>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+    <include>
+      <name>room_d</name>
+      <uri>model://room_d</uri>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+    <include>
+      <name>room_e</name>
+      <uri>model://room_e</uri>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+    <include>
+      <name>room_f</name>
+      <uri>model://room_f</uri>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+    <include>
+      <name>room_g</name>
+      <uri>model://room_g</uri>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+    <include>
+      <name>room_corridor</name>
+      <uri>model://room_corridor</uri>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+
+  </world>
+</sdf>

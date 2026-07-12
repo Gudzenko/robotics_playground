@@ -294,8 +294,8 @@ Verify Gazebo is working:
 gz sim empty.sdf
 ```
 
-- [ ] Install `ros-jazzy-ros-gz`, `ros-jazzy-ros-gz-bridge`, `ros-jazzy-ros-gz-sim`
-- [ ] Verify `gz sim empty.sdf` opens the Gazebo GUI
+- [x] Install `ros-jazzy-ros-gz`, `ros-jazzy-ros-gz-bridge`, `ros-jazzy-ros-gz-sim`
+- [x] Verify `gz sim empty.sdf` opens the Gazebo GUI
 
 ---
 
@@ -342,10 +342,10 @@ git clone --depth 1 https://github.com/aws-robotics/aws-robomaker-small-warehous
 cp -r /tmp/aws_warehouse/models/* models/
 ```
 
-- [ ] Create `cargo_bot_world` package with `ament_python`
-- [ ] Add `worlds/`, `models/`, `launch/` directories
-- [ ] Copy AWS RoboMaker model files into `models/`
-- [ ] Register data files in `setup.py` (worlds, models, launch)
+- [x] Create `cargo_bot_world` package with `ament_python`
+- [x] Add `worlds/`, `models/`, `launch/` directories
+- [x] Copy AWS RoboMaker model files into `models/`
+- [x] Register data files in `setup.py` (worlds, models, launch)
 
 ---
 
@@ -471,8 +471,51 @@ Create a simple RViz-only warehouse scene around the robot. This step is for vis
 
 **Future variants:**
 
+- [x] Add a multi-room indoor environment (see step below)
 - [ ] Add an apartment-like environment later if needed
 - [ ] Move the warehouse scene into Gazebo when physics simulation starts
+
+---
+
+### 9b. Multi-room indoor world
+
+A second Gazebo world in `cargo_bot_world`: five interconnected rooms with a circular driving route.
+Built entirely from SDF box primitives — no external dependencies, works offline.
+
+**Layout:**
+```
++----Room D----+----corridor----+----Room E----+
+|              |                |              |
++----Room B----+                +----Room C----+
+          |                              |
+          +----------Room A--------------+
+                          |
+                    [entry / outside]
+```
+
+**Room dimensions:**
+- Room A (entry hall): 8 × 8 m
+- Rooms B, C, D, E: 5 × 5 m each
+- Corridor D↔E: 8 × 2 m
+
+**Circular route:** A → B → D → corridor → E → C → A
+
+**Door openings:** 1.8 m wide × 2.4 m tall with visible wood-brown box frames.
+
+**Each room has a distinct floor color** for easy orientation.
+
+**Implementation steps:**
+- [x] Create `worlds/indoor_rooms.sdf` with all rooms, walls, door frames
+- [x] Fix missing wall corner segments in rooms B and C
+- [x] Add dead-end rooms F (east of C) and G (west of B)
+- [x] Extract building model to `models/indoor_building/model.sdf` (first refactor)
+- [x] Split building into 9 per-room models for independent furnishing
+- [x] Add parametric world builder: `scripts/world_builder/` library
+- [x] Add furniture: shelves with boxes, desks, chairs, plants, floor boxes
+- [x] Scale world ×1.5 for robot navigation (rooms 7.5×7.5m, doors 2.7m wide, corridor 3m wide)
+- [x] Add `launch/indoor_rooms.launch.py` with robot spawn at Room A centre
+- [x] Test: robot drives through all rooms, collides with walls/shelves
+- [x] Document in README
 
 ---
 

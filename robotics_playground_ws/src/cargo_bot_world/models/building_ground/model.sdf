@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<sdf version="1.8">
+  <model name="building_ground">
+    <static>true</static>
+    <pose>0 0 0 0 0 0</pose>
+    <link name="ground">
+      <pose>0 4 -0.025 0 0 0</pose>
+      <collision name="col"><geometry><box><size>60 40 0.05</size></box></geometry></collision>
+      <visual name="vis">
+        <geometry><box><size>60 40 0.05</size></box></geometry>
+        <material><ambient>0.4 0.44 0.36 1</ambient><diffuse>0.4 0.44 0.36 1</diffuse></material>
+      </visual>
+    </link>
+  </model>
+</sdf>

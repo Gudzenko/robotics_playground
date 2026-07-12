@@ -1,0 +1,513 @@
+<?xml version="1.0"?>
+<sdf version="1.8">
+<model name="indoor_building">
+  <static>true</static>
+  <pose>0 0 0 0 0 0</pose>
+
+  <!-- ===== GROUND ===== -->
+  <link name="ground">
+    <pose>0 3 -0.025 0 0 0</pose>
+    <collision name="col"><geometry><box><size>35 35 0.05</size></box></geometry></collision>
+    <visual name="vis">
+      <geometry><box><size>35 35 0.05</size></box></geometry>
+      <material><ambient>0.40 0.44 0.36 1</ambient><diffuse>0.40 0.44 0.36 1</diffuse></material>
+    </visual>
+  </link>
+
+  <!-- ===== ROOM FLOOR OVERLAYS (visual, no collision) ===== -->
+  <link name="floor_a">
+    <pose>0 0 0.002 0 0 0</pose>
+    <visual name="vis">
+      <geometry><box><size>8.0 8.0 0.004</size></box></geometry>
+      <material><ambient>0.78 0.72 0.60 1</ambient><diffuse>0.78 0.72 0.60 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="floor_b">
+    <pose>-6.5 2.0 0.002 0 0 0</pose>
+    <visual name="vis">
+      <geometry><box><size>5.0 5.0 0.004</size></box></geometry>
+      <material><ambient>0.83 0.79 0.71 1</ambient><diffuse>0.83 0.79 0.71 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="floor_c">
+    <pose>6.5 2.0 0.002 0 0 0</pose>
+    <visual name="vis">
+      <geometry><box><size>5.0 5.0 0.004</size></box></geometry>
+      <material><ambient>0.71 0.79 0.83 1</ambient><diffuse>0.71 0.79 0.83 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="floor_d">
+    <pose>-6.5 7.0 0.002 0 0 0</pose>
+    <visual name="vis">
+      <geometry><box><size>5.0 5.0 0.004</size></box></geometry>
+      <material><ambient>0.76 0.83 0.71 1</ambient><diffuse>0.76 0.83 0.71 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="floor_e">
+    <pose>6.5 7.0 0.002 0 0 0</pose>
+    <visual name="vis">
+      <geometry><box><size>5.0 5.0 0.004</size></box></geometry>
+      <material><ambient>0.83 0.76 0.71 1</ambient><diffuse>0.83 0.76 0.71 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="floor_corridor">
+    <pose>0 7.0 0.002 0 0 0</pose>
+    <visual name="vis">
+      <geometry><box><size>8.15 2.0 0.004</size></box></geometry>
+      <material><ambient>0.72 0.72 0.74 1</ambient><diffuse>0.72 0.72 0.74 1</diffuse></material>
+    </visual>
+  </link>
+
+  <!-- ===== ROOM A WALLS ===== -->
+  <!-- south – entry door at x=0, width 1.8m -->
+  <link name="wall_a_s_l">
+    <pose>-2.4875 -4.075 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>3.175 0.15 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>3.175 0.15 3.0</size></box></geometry>
+      <material><ambient>0.60 0.60 0.65 1</ambient><diffuse>0.60 0.60 0.65 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="wall_a_s_r">
+    <pose>2.4875 -4.075 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>3.175 0.15 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>3.175 0.15 3.0</size></box></geometry>
+      <material><ambient>0.60 0.60 0.65 1</ambient><diffuse>0.60 0.60 0.65 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="wall_a_s_top">
+    <pose>0 -4.075 2.7 0 0 0</pose>
+    <collision name="col"><geometry><box><size>1.8 0.15 0.6</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>1.8 0.15 0.6</size></box></geometry>
+      <material><ambient>0.60 0.60 0.65 1</ambient><diffuse>0.60 0.60 0.65 1</diffuse></material>
+    </visual>
+  </link>
+
+  <!-- north – no door -->
+  <link name="wall_a_n">
+    <pose>0 4.075 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>8.15 0.15 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>8.15 0.15 3.0</size></box></geometry>
+      <material><ambient>0.60 0.60 0.65 1</ambient><diffuse>0.60 0.60 0.65 1</diffuse></material>
+    </visual>
+  </link>
+
+  <!-- west (shared with B) – door at y=2.0 -->
+  <link name="wall_a_w_bot">
+    <pose>-4.075 -1.45 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 5.1 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 5.1 3.0</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="wall_a_w_top_seg">
+    <pose>-4.075 3.45 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 1.1 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 1.1 3.0</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="wall_a_w_door_top">
+    <pose>-4.075 2.0 2.7 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 1.8 0.6</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 1.8 0.6</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+
+  <!-- east (shared with C) – door at y=2.0 -->
+  <link name="wall_a_e_bot">
+    <pose>4.075 -1.45 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 5.1 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 5.1 3.0</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="wall_a_e_top_seg">
+    <pose>4.075 3.45 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 1.1 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 1.1 3.0</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="wall_a_e_door_top">
+    <pose>4.075 2.0 2.7 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 1.8 0.6</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 1.8 0.6</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+
+  <!-- ===== ROOM B WALLS ===== -->
+  <!-- south – no door -->
+  <link name="wall_b_s">
+    <pose>-6.575 -0.575 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>5.0 0.15 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>5.0 0.15 3.0</size></box></geometry>
+      <material><ambient>0.60 0.60 0.65 1</ambient><diffuse>0.60 0.60 0.65 1</diffuse></material>
+    </visual>
+  </link>
+  <!-- west – door to Room G at y=2.0 -->
+  <link name="wall_b_w_bot">
+    <pose>-9.075 0.3 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 1.6 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 1.6 3.0</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="wall_b_w_top">
+    <pose>-9.075 3.7 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 1.6 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 1.6 3.0</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="wall_b_w_door_top">
+    <pose>-9.075 2.0 2.7 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 1.8 0.6</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 1.8 0.6</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+  <!-- gap filler: B east corner y=4.0–4.5 -->
+  <link name="wall_b_e_gap">
+    <pose>-4.075 4.25 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 0.5 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 0.5 3.0</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+  <!-- north (shared with D) – door at x=-6.5 -->
+  <link name="wall_b_n_l">
+    <pose>-8.2375 4.575 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>1.675 0.15 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>1.675 0.15 3.0</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="wall_b_n_r">
+    <pose>-4.8375 4.575 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>1.525 0.15 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>1.525 0.15 3.0</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="wall_b_n_top">
+    <pose>-6.5 4.575 2.7 0 0 0</pose>
+    <collision name="col"><geometry><box><size>1.8 0.15 0.6</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>1.8 0.15 0.6</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+
+  <!-- ===== ROOM C WALLS ===== -->
+  <!-- south – no door -->
+  <link name="wall_c_s">
+    <pose>6.575 -0.575 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>5.0 0.15 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>5.0 0.15 3.0</size></box></geometry>
+      <material><ambient>0.60 0.60 0.65 1</ambient><diffuse>0.60 0.60 0.65 1</diffuse></material>
+    </visual>
+  </link>
+  <!-- east – door to Room F at y=2.0 -->
+  <link name="wall_c_e_bot">
+    <pose>9.075 0.3 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 1.6 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 1.6 3.0</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="wall_c_e_top">
+    <pose>9.075 3.7 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 1.6 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 1.6 3.0</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="wall_c_e_door_top">
+    <pose>9.075 2.0 2.7 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 1.8 0.6</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 1.8 0.6</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+  <!-- gap filler: C west corner y=4.0–4.5 -->
+  <link name="wall_c_w_gap">
+    <pose>4.075 4.25 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 0.5 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 0.5 3.0</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+  <!-- north (shared with E) – door at x=6.5 -->
+  <link name="wall_c_n_l">
+    <pose>4.8375 4.575 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>1.525 0.15 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>1.525 0.15 3.0</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="wall_c_n_r">
+    <pose>8.2375 4.575 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>1.675 0.15 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>1.675 0.15 3.0</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="wall_c_n_top">
+    <pose>6.5 4.575 2.7 0 0 0</pose>
+    <collision name="col"><geometry><box><size>1.8 0.15 0.6</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>1.8 0.15 0.6</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+
+  <!-- ===== ROOM D WALLS ===== -->
+  <!-- west – no door -->
+  <link name="wall_d_w">
+    <pose>-9.075 7.0 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 5.0 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 5.0 3.0</size></box></geometry>
+      <material><ambient>0.60 0.60 0.65 1</ambient><diffuse>0.60 0.60 0.65 1</diffuse></material>
+    </visual>
+  </link>
+  <!-- north – no door -->
+  <link name="wall_d_n">
+    <pose>-6.575 9.575 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>5.15 0.15 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>5.15 0.15 3.0</size></box></geometry>
+      <material><ambient>0.60 0.60 0.65 1</ambient><diffuse>0.60 0.60 0.65 1</diffuse></material>
+    </visual>
+  </link>
+  <!-- east (shared with corridor) – door at y=7.0 -->
+  <link name="wall_d_e_bot">
+    <pose>-4.075 5.3 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 1.6 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 1.6 3.0</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="wall_d_e_top_seg">
+    <pose>-4.075 8.7 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 1.6 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 1.6 3.0</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="wall_d_e_door_top">
+    <pose>-4.075 7.0 2.7 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 1.8 0.6</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 1.8 0.6</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+
+  <!-- ===== ROOM E WALLS ===== -->
+  <!-- east – no door -->
+  <link name="wall_e_e">
+    <pose>9.075 7.0 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 5.0 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 5.0 3.0</size></box></geometry>
+      <material><ambient>0.60 0.60 0.65 1</ambient><diffuse>0.60 0.60 0.65 1</diffuse></material>
+    </visual>
+  </link>
+  <!-- north – no door -->
+  <link name="wall_e_n">
+    <pose>6.575 9.575 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>5.15 0.15 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>5.15 0.15 3.0</size></box></geometry>
+      <material><ambient>0.60 0.60 0.65 1</ambient><diffuse>0.60 0.60 0.65 1</diffuse></material>
+    </visual>
+  </link>
+  <!-- west (shared with corridor) – door at y=7.0 -->
+  <link name="wall_e_w_bot">
+    <pose>4.075 5.3 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 1.6 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 1.6 3.0</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="wall_e_w_top_seg">
+    <pose>4.075 8.7 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 1.6 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 1.6 3.0</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+  <link name="wall_e_w_door_top">
+    <pose>4.075 7.0 2.7 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 1.8 0.6</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 1.8 0.6</size></box></geometry>
+      <material><ambient>0.75 0.75 0.78 1</ambient><diffuse>0.75 0.75 0.78 1</diffuse></material>
+    </visual>
+  </link>
+
+  <!-- ===== CORRIDOR WALLS ===== -->
+  <!-- north – no door -->
+  <link name="wall_cor_n">
+    <pose>0 8.075 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>8.15 0.15 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>8.15 0.15 3.0</size></box></geometry>
+      <material><ambient>0.60 0.60 0.65 1</ambient><diffuse>0.60 0.60 0.65 1</diffuse></material>
+    </visual>
+  </link>
+  <!-- south – no door -->
+  <link name="wall_cor_s">
+    <pose>0 5.925 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>8.15 0.15 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>8.15 0.15 3.0</size></box></geometry>
+      <material><ambient>0.60 0.60 0.65 1</ambient><diffuse>0.60 0.60 0.65 1</diffuse></material>
+    </visual>
+  </link>
+
+  <!-- ===== DOOR FRAMES (visual only, wood brown) ===== -->
+  <!-- frame dimensions:
+       Y-wall door (wall at x=const): posts (0.19, 0.12, 2.4), lintel (0.19, 2.04, 0.20)
+       X-wall door (wall at y=const): posts (0.12, 0.19, 2.4), lintel (2.04, 0.19, 0.20) -->
+
+  <!-- Frame: entry door (A south, y=-4.075, x=0) X-wall -->
+  <link name="frm_entry_l"><pose>-0.96 -4.075 1.2 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.12 0.19 2.4</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+  <link name="frm_entry_r"><pose>0.96 -4.075 1.2 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.12 0.19 2.4</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+  <link name="frm_entry_t"><pose>0 -4.075 2.5 0 0 0</pose>
+    <visual name="v"><geometry><box><size>2.04 0.19 0.20</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+
+  <!-- Frame: A↔B (A west, x=-4.075, y=2.0) Y-wall -->
+  <link name="frm_ab_l"><pose>-4.075 1.04 1.2 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.19 0.12 2.4</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+  <link name="frm_ab_r"><pose>-4.075 2.96 1.2 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.19 0.12 2.4</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+  <link name="frm_ab_t"><pose>-4.075 2.0 2.5 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.19 2.04 0.20</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+
+  <!-- Frame: A↔C (A east, x=4.075, y=2.0) Y-wall -->
+  <link name="frm_ac_l"><pose>4.075 1.04 1.2 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.19 0.12 2.4</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+  <link name="frm_ac_r"><pose>4.075 2.96 1.2 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.19 0.12 2.4</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+  <link name="frm_ac_t"><pose>4.075 2.0 2.5 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.19 2.04 0.20</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+
+  <!-- Frame: B↔D (B north, y=4.575, x=-6.5) X-wall -->
+  <link name="frm_bd_l"><pose>-7.46 4.575 1.2 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.12 0.19 2.4</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+  <link name="frm_bd_r"><pose>-5.54 4.575 1.2 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.12 0.19 2.4</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+  <link name="frm_bd_t"><pose>-6.5 4.575 2.5 0 0 0</pose>
+    <visual name="v"><geometry><box><size>2.04 0.19 0.20</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+
+  <!-- Frame: C↔E (C north, y=4.575, x=6.5) X-wall -->
+  <link name="frm_ce_l"><pose>5.54 4.575 1.2 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.12 0.19 2.4</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+  <link name="frm_ce_r"><pose>7.46 4.575 1.2 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.12 0.19 2.4</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+  <link name="frm_ce_t"><pose>6.5 4.575 2.5 0 0 0</pose>
+    <visual name="v"><geometry><box><size>2.04 0.19 0.20</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+
+  <!-- Frame: D↔corridor (D east, x=-4.075, y=7.0) Y-wall -->
+  <link name="frm_dc_l"><pose>-4.075 6.04 1.2 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.19 0.12 2.4</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+  <link name="frm_dc_r"><pose>-4.075 7.96 1.2 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.19 0.12 2.4</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+  <link name="frm_dc_t"><pose>-4.075 7.0 2.5 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.19 2.04 0.20</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+
+  <!-- Frame: corridor↔E (E west, x=4.075, y=7.0) Y-wall -->
+  <link name="frm_ec_l"><pose>4.075 6.04 1.2 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.19 0.12 2.4</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+  <link name="frm_ec_r"><pose>4.075 7.96 1.2 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.19 0.12 2.4</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+  <link name="frm_ec_t"><pose>4.075 7.0 2.5 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.19 2.04 0.20</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+
+  <!-- ===== ROOM F (dead-end, east of C): x[9,14] y[-0.5,4.5] ===== -->
+  <link name="floor_f"><pose>11.5 2.0 0.002 0 0 0</pose>
+    <visual name="v"><geometry><box><size>5.0 5.0 0.004</size></box></geometry>
+      <material><ambient>0.78 0.71 0.83 1</ambient><diffuse>0.78 0.71 0.83 1</diffuse></material></visual></link>
+  <link name="wall_f_s">
+    <pose>11.5 -0.575 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>5.0 0.15 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>5.0 0.15 3.0</size></box></geometry>
+      <material><ambient>0.60 0.60 0.65 1</ambient><diffuse>0.60 0.60 0.65 1</diffuse></material></visual>
+  </link>
+  <link name="wall_f_e">
+    <pose>14.075 2.0 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 5.0 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 5.0 3.0</size></box></geometry>
+      <material><ambient>0.60 0.60 0.65 1</ambient><diffuse>0.60 0.60 0.65 1</diffuse></material></visual>
+  </link>
+  <link name="wall_f_n">
+    <pose>11.5 4.575 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>5.15 0.15 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>5.15 0.15 3.0</size></box></geometry>
+      <material><ambient>0.60 0.60 0.65 1</ambient><diffuse>0.60 0.60 0.65 1</diffuse></material></visual>
+  </link>
+
+  <!-- ===== ROOM G (dead-end, west of B): x[-14,-9] y[-0.5,4.5] ===== -->
+  <link name="floor_g"><pose>-11.5 2.0 0.002 0 0 0</pose>
+    <visual name="v"><geometry><box><size>5.0 5.0 0.004</size></box></geometry>
+      <material><ambient>0.83 0.80 0.65 1</ambient><diffuse>0.83 0.80 0.65 1</diffuse></material></visual></link>
+  <link name="wall_g_s">
+    <pose>-11.5 -0.575 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>5.0 0.15 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>5.0 0.15 3.0</size></box></geometry>
+      <material><ambient>0.60 0.60 0.65 1</ambient><diffuse>0.60 0.60 0.65 1</diffuse></material></visual>
+  </link>
+  <link name="wall_g_w">
+    <pose>-14.075 2.0 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>0.15 5.0 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>0.15 5.0 3.0</size></box></geometry>
+      <material><ambient>0.60 0.60 0.65 1</ambient><diffuse>0.60 0.60 0.65 1</diffuse></material></visual>
+  </link>
+  <link name="wall_g_n">
+    <pose>-11.5 4.575 1.5 0 0 0</pose>
+    <collision name="col"><geometry><box><size>5.15 0.15 3.0</size></box></geometry></collision>
+    <visual name="vis"><geometry><box><size>5.15 0.15 3.0</size></box></geometry>
+      <material><ambient>0.60 0.60 0.65 1</ambient><diffuse>0.60 0.60 0.65 1</diffuse></material></visual>
+  </link>
+
+  <!-- Frame: C↔F (C east, x=9.075, y=2.0) Y-wall -->
+  <link name="frm_cf_l"><pose>9.075 1.04 1.2 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.19 0.12 2.4</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+  <link name="frm_cf_r"><pose>9.075 2.96 1.2 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.19 0.12 2.4</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+  <link name="frm_cf_t"><pose>9.075 2.0 2.5 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.19 2.04 0.20</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+
+  <!-- Frame: B↔G (B west, x=-9.075, y=2.0) Y-wall -->
+  <link name="frm_bg_l"><pose>-9.075 1.04 1.2 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.19 0.12 2.4</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+  <link name="frm_bg_r"><pose>-9.075 2.96 1.2 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.19 0.12 2.4</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+  <link name="frm_bg_t"><pose>-9.075 2.0 2.5 0 0 0</pose>
+    <visual name="v"><geometry><box><size>0.19 2.04 0.20</size></box></geometry>
+      <material><ambient>0.50 0.32 0.12 1</ambient><diffuse>0.50 0.32 0.12 1</diffuse></material></visual></link>
+
+</model>
+</sdf>
