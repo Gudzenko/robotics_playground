@@ -1,584 +1,234 @@
-# ROS 2 Learning Roadmap
+# ROS 2 Robotics Playground Roadmap
 
 ## Project overview
 
-Self-contained ROS 2 learning project on Ubuntu 24.04 without physical hardware.  
-All code is Python, built with `colcon`, workspace at `robotics_playground_ws/`.
+Self-contained ROS 2 learning and simulation project for Ubuntu 24.04 without physical hardware.
+The workspace is located at `robotics_playground_ws/` and is built with `colcon`.
 
-- **ROS 2 version:** Jazzy
-- **Package:** `learning` (`ament_python`)
-- **Interfaces package:** `learning_interfaces` (`ament_cmake`)
-- **Full documentation:** [README.md](README.md)
+- **ROS 2:** Jazzy
+- **Gazebo:** Harmonic through `ros_gz`
+- **Language:** Python; URDF/Xacro and SDF for robot and world descriptions
+- **Documentation:** [README.md](README.md)
 
----
+Current packages:
+
+| Package | Purpose |
+|---|---|
+| `learning` | Small ROS 2 examples for core concepts |
+| `learning_interfaces` | Custom interfaces used by `learning` |
+| `cargo_bot` | Robot model, RViz scenes, kinematic drive and manipulator control |
+| `cargo_bot_interfaces` | Manipulator action, services and state message |
+| `cargo_bot_world` | Gazebo warehouse and multi-room environments |
+
+## Current status
+
+The project currently supports three levels of simulation:
+
+1. RViz model inspection with manual joint sliders.
+2. RViz-only kinematic driving and manipulator visualization.
+3. Gazebo driving with differential-drive physics and collision-enabled environments.
+
+The robot can be driven manually through `/cmd_vel` in RViz and Gazebo. The manipulator action
+API controls joint-state visualization in RViz. A physical Gazebo controller for the manipulator,
+sensors, SLAM and autonomous navigation are not implemented yet.
 
 ## Completed
 
-### Core ROS 2 concepts (`learning` package)
+### 1. Core ROS 2 concepts
 
-| Topic | What was built | Where to read |
-|---|---|---|
-| **Topics** | `status_publisher`, `status_subscriber`, `command_publisher`, `command_subscriber` | README → Topics |
-| **Services** | `robot_server` (uptime + reset), `reset_client`, `status_client` | README → Services |
-| **Actions** | `count_mission_server` + `count_mission_client` (Fibonacci, cancel support) | README → Actions |
-| **Parameters** | `configurable_pub` (runtime param changes), `param_client` | README → Parameters |
-| **Launch files** | `topics.launch.py`, `full_system.launch.py` (args, include, LogInfo) | README → Launch files |
-| **Lifecycle** | `managed_sensor` — full state machine, publisher created/destroyed on transitions | README → Lifecycle |
-| **QoS** | `qos_publisher` + `qos_subscriber` — reliability compatibility, depth/drop demo | README → QoS |
-| **Rosbag** | CLI only — record, play, inspect | README → Rosbag |
-| **Executors** | `blocking_demo` — SingleThreaded vs MultiThreaded + ReentrantCallbackGroup | README → Executors |
-| **Diagnostics** | `robot_monitor` — Battery/Motor/Sensor → `/diagnostics` via `DiagnosticUpdater` | README → Diagnostics |
-| **Custom interfaces** | `RobotStatus.msg`, `SetPatrolPoints.srv`, `Patrol.action` + 6 nodes | README → Custom interfaces |
+The `learning` and `learning_interfaces` packages contain working examples of:
 
----
+- [x] Topics and publisher/subscriber nodes
+- [x] Services and clients
+- [x] Actions with feedback and cancellation
+- [x] Runtime parameters and a parameter client
+- [x] Launch files with arguments and includes
+- [x] Lifecycle nodes
+- [x] QoS compatibility and queue-depth experiments
+- [x] Rosbag recording, inspection and playback documentation
+- [x] Single- and multi-threaded executor examples
+- [x] Diagnostics through `/diagnostics`
+- [x] Custom message, service and action interfaces
 
-## In progress / Next steps
+### 2. Cargo Bot visual model
 
-### 1. Cargo Bot visual model (next)
+- [x] Create the `cargo_bot` package
+- [x] Split the URDF/Xacro model into base, wheels, manipulator, materials and inertia modules
+- [x] Add `base_footprint`, `base_link`, chassis and cargo deck
+- [x] Add two drive wheels and a fixed rear support sphere
+- [x] Add development and production visual modes
+- [x] Add collision geometry and approximate inertial properties
+- [x] Add RViz launch and configuration files
 
-Create a production-style robot model named `cargo_bot` and visualize it in RViz.
+Current robot layout:
 
-The robot is a heavy warehouse cargo platform intended, in the long term, for moving boxes and payloads up to roughly 2 tons. The first version focuses only on the robot's visual model and TF structure. Navigation, apartment/warehouse environment visualization, sensors, manipulator control, and physics are intentionally postponed.
+- heavy low warehouse chassis;
+- two front differential-drive wheels;
+- fixed spherical rear support;
+- rear cargo deck;
+- front lift/rotate/telescope/gripper manipulator;
+- fixed camera-shaped link near the gripper, without a sensor plugin.
 
-**Current design assumptions:**
+### 3. TF and kinematic movement in RViz
 
-- Package name: `cargo_bot`
-- Robot/model name: `cargo_bot`
-- Robot type: heavy warehouse hybrid platform
-- Drive layout: differential drive, two large side drive wheels
-- Support wheel: one passive rear caster/support wheel
-- Cargo area: rear cargo deck for boxes; rear bin/tray postponed until the cargo area design is clearer
-- Future manipulator: mounted on the robot later as a separate module
-- Future sensors: lidar, cameras, IMU, and contact sensors may be added later, but are not part of the first visual model
-
-**Why split the model into modules:**
-
-The URDF/Xacro model should be split even if the first version is small. This makes it easier to replace the base, wheels, cargo area, sensors, or manipulator independently later.
-
-Planned initial package structure:
-
-```
-robotics_playground_ws/src/cargo_bot/
-├── cargo_bot/
-│   └── __init__.py
-├── launch/
-│   └── display.launch.py
-├── resource/
-│   └── cargo_bot
-├── rviz/
-│   └── cargo_bot_display.rviz
-├── urdf/
-│   ├── cargo_bot.urdf.xacro
-│   ├── cargo_bot_base.xacro
-│   ├── cargo_bot_materials.xacro
-│   └── cargo_bot_wheels.xacro
-├── package.xml
-├── setup.cfg
-└── setup.py
-```
-
-**Small implementation steps:**
-
-- [x] Create new package `cargo_bot` (`ament_python`) with the planned folder structure
-- [x] Add the smallest possible URDF/Xacro model:
-  - `base_footprint`
-  - `base_link`
-  - one simple temporary body box
-- [x] Add `display.launch.py` and RViz config early:
-  - load `robot_description`
-  - start `robot_state_publisher`
-  - start `joint_state_publisher_gui`
-  - open RViz with RobotModel, TF, and Grid
-  - support `visual_mode:=dev` for transparent debug materials and `visual_mode:=prod` for opaque materials
-- [x] First visual checkpoint: RViz opens and shows the minimal robot body and TF frames
-- [x] Split the temporary model into modules:
-  - `cargo_bot_materials.xacro`
-  - `cargo_bot_base.xacro`
-  - `cargo_bot_wheels.xacro`
-  - main `cargo_bot.urdf.xacro`
-- [x] Replace the temporary body with the heavy low chassis
-- [x] Visual checkpoint: chassis proportions look like a warehouse cargo platform
-- [x] Add the top cargo deck
-- [x] Visual checkpoint: cargo deck is aligned with the chassis and does not hide TF frames
-- [x] Add left and right drive wheels with continuous joints
-- [x] Visual checkpoint: wheels sit on the ground plane, rotate around the correct axis, and are symmetric
-- [x] Add the rear caster/support wheel
-- [x] Visual checkpoint: final first-version robot has a clear 2-drive-wheel + rear-support layout
-- [x] Document the package, model structure, and launch command in README
-
-**Expected result:** `ros2 launch cargo_bot display.launch.py` opens RViz with the cargo robot model and TF tree visible.
-
-**Explicitly not included in this step:**
-
-- [ ] No rear cargo bin/tray yet
-- [ ] No sensors yet
-- [ ] No manipulator yet
-- [ ] No `/cmd_vel` movement yet
-- [ ] No odometry yet
-- [ ] No Gazebo physics yet
-- [ ] No apartment/warehouse environment yet
-- [ ] No navigation yet
-
----
-
-### 2. TF + simple RViz movement (after visual model)
-
-Make the robot move in RViz without Gazebo physics. This should be a small kinematic simulation layer used to understand TF, odometry, wheel joints, and `/cmd_vel`.
-
-**What needs to be done:**
-
-- [x] Move shared geometry/kinematics parameters to `config/cargo_bot_geometry.yaml`
-- [x] Add a simple differential-drive kinematics node
+- [x] Store shared geometry in `config/cargo_bot_geometry.yaml`
 - [x] Subscribe to `/cmd_vel`
+- [x] Integrate differential-drive motion in `simple_diff_drive_sim`
 - [x] Publish `odom -> base_footprint`
 - [x] Publish `nav_msgs/Odometry` on `/odom`
-- [x] Publish wheel joint states so the wheels rotate visually
-- [x] Add `drive_in_rviz.launch.py` for movement visualization without `joint_state_publisher_gui`
-- [x] Use `teleop_twist_keyboard` or a small custom teleop node for manual control
-- [x] Visualize movement and TF in RViz
-- [x] Generate/check TF tree via `ros2 run tf2_tools view_frames`
-- [x] Document in README
-
-**Expected result:** the robot can be driven around the RViz grid with `/cmd_vel`, while TF, odometry, and wheel animation remain consistent.
-
----
-
-### 3. Manipulator visual model (later)
-
-Add a separate manipulator module to the robot model. This should stay modular so the manipulator can be replaced or redesigned without rewriting the base platform.
-
-**Long-term manipulator idea:**
-
-- Vertical lift axis
-- Rotation around the vertical axis
-- Telescoping/extendable arm
-- Gripper
-- Camera mounted near the gripper
-- Purpose: take objects from shelves and place them into the rear cargo bin/tray
+- [x] Publish wheel positions on `/joint_states`
+- [x] Add `drive_in_rviz.launch.py`
+- [x] Document teleoperation and TF inspection
 
-**What needs to be done later:**
+### 4. Manipulator model and RViz control
 
-- [ ] Revisit rear cargo bin/tray design when object placement requirements are clearer
-- [x] Add `cargo_bot_manipulator.xacro`
-- [x] Add lift joint (`prismatic`)
-- [x] Add rotation joint (`revolute` or `continuous`)
-- [x] Add telescoping arm joint (`prismatic`)
-- [x] Add gripper joints
-- [x] Add camera link near the gripper
-- [x] Control joints manually through `joint_state_publisher_gui` first
-- [x] Document link/joint structure in README
-
----
-
-### 4. Manipulator control node (later)
+- [x] Add rotation, lift, telescoping arm and gripper joints
+- [x] Add `MoveManipulatorElement.action`
+- [x] Add `CancelManipulatorOperation.srv`
+- [x] Add `GetManipulatorState.srv`
+- [x] Validate element names, finite values and joint limits
+- [x] Generate operation IDs and track per-element state
+- [x] Allow different elements to move concurrently
+- [x] Reject a second operation for an already-moving element
+- [x] Support cancellation by operation ID
+- [x] Interpolate positions linearly over the requested duration
+- [x] Publish manipulator joint states for RViz
+- [x] Publish passive wheel states separately
+- [x] Add `manipulator_in_rviz.launch.py`
 
-Add a dedicated ROS control layer for the manipulator after the visual model is stable.
+Current limitation: this controller publishes desired joint states for visualization. It is not a
+Gazebo effort/velocity/position controller and does not provide physical manipulation.
 
-**Current interface contract:**
+### 5. RViz warehouse scene
 
-- `MoveManipulatorElement.action`: sends one movement command to one manipulator element.
-- `CancelManipulatorOperation.srv`: requests cancellation by `operation_id`.
-- `GetManipulatorState.srv`: returns the current state of all manipulator elements.
-- `ManipulatorElementState.msg`: describes one element state with its name, position, movement flag, operation id, and status.
-- The control node now implements the basic command, cancel, state, limit validation, and RViz joint-state flow.
+- [x] Publish a warehouse floor, walls, shelves, boxes and loading zone as `MarkerArray`
+- [x] Split marker factories by object type
+- [x] Add `warehouse_in_rviz.launch.py`
+- [x] Run the drive and manipulator nodes together with the scene
 
-**What needs to be done later:**
+This environment is visual only. RViz markers do not participate in collision detection.
 
-- [x] Decide command interface: one Action operation per manipulator element
-- [x] Create `cargo_bot_interfaces` with `MoveManipulatorElement.action`
-- [x] Create `CancelManipulatorOperation.srv` interface
-- [x] Create `GetManipulatorState.srv` interface
-- [x] Create `manipulator_control_node` skeleton
-- [x] Connect `GetManipulatorState.srv` to `manipulator_control_node` with initial static states
-- [x] Move shared manipulator element names and statuses into constants
-- [x] Move initial manipulator element state values into defaults
-- [x] Add `MoveManipulatorElement.action` server with operation id generation and basic validation
-- [x] Load manipulator element limits from `cargo_bot_geometry.yaml`
-- [x] Validate command positions against per-element limits
-- [x] Update stored element state after a successful command
-- [x] Connect `CancelManipulatorOperation.srv` to `manipulator_control_node`
-- [x] Add element busy-state check before accepting movement
-- [x] Use a reentrant callback group and multithreaded executor for parallel callbacks
-- [x] Execute accepted commands for `duration_sec` at the state level
-- [x] Allow `CancelManipulatorOperation.srv` to interrupt an active state-level operation
-- [x] Publish manipulator joint states from `manipulator_control_node`
-- [x] Add RViz launch mode driven by `manipulator_control_node`
-- [x] Move non-manipulator passive joint states into a separate publisher
-- [x] Add linear interpolation for state-level manipulator movement
-- [x] Add commands for lift, rotation, telescoping arm, and gripper
-- [x] Generate an `operation_id` for every accepted or rejected command
-- [x] Return only `started`, `done`, or `error` statuses
-- [x] Allow different elements to move in parallel
-- [x] Reject a new command if the same element is already moving
-- [x] Add cancel by `operation_id`; a successfully canceled running operation returns `done`
-- [x] Add a state query interface for positions, active operations, and last statuses
-- [x] Publish joint states from the control node instead of using `joint_state_publisher_gui`
-- [x] Add safety limits based on `cargo_bot_geometry.yaml`
-- [x] Document usage in README
+### 6. Gazebo robot simulation
 
-**Possible refactoring / cleanup:**
+- [x] Add collision and inertia to the robot model
+- [x] Add the Gazebo differential-drive system plugin
+- [x] Bridge `/cmd_vel`, `/odom`, `/tf`, `/joint_states` and `/clock`
+- [x] Spawn the robot through `ros_gz_sim`
+- [x] Drive using the same `/cmd_vel` interface as the RViz simulation
+- [x] Verify collisions with floors, walls and shelves
 
-- [x] Extract geometry loading helpers from `manipulator_control_node.py`
-- [x] Extract manipulator operation state handling into a small dedicated class
-- [x] Consider moving shared joint-state publish timing constants into a common module
+The drive base uses Gazebo physics. Manipulator joints currently rely on high damping and do not
+have a physical controller.
 
----
+### 7. Gazebo environments
 
-### 5. Manipulator enhancements (later)
+#### AWS warehouse
 
-Keep these out of the current basic control step until they are needed by a concrete workflow.
+- [x] Create the `cargo_bot_world` package
+- [x] Adapt the AWS RoboMaker warehouse assets for Gazebo Harmonic
+- [x] Add `small_warehouse.sdf`
+- [x] Add collision-enabled static walls, shelves and ground
+- [x] Add `gazebo_warehouse.launch.py`
 
-**Candidate future improvements:**
+#### Multi-room indoor world
 
-- [ ] Add simple named poses, e.g. stowed, pickup, place-to-cargo-deck
-- [ ] Add smoother motion profiles instead of linear interpolation
-- [ ] Add a higher-level command layer for coordinated multi-element motions
-- [ ] Add real gripper/object interaction when physics simulation is introduced
+- [x] Create seven rooms, a corridor and an outdoor ground model
+- [x] Provide a circular A → B → D → corridor → E → C → A route
+- [x] Add dead-end rooms F and G
+- [x] Split the building into independently generated models
+- [x] Add shelves, boxes, desks, chairs and plants
+- [x] Scale the layout for a roughly 1 m wide robot
+- [x] Add the Python parametric world builder
+- [x] Add `indoor_rooms.launch.py`
 
----
+Current generated dimensions:
 
-### 6. Sensors (later)
+- Room A: 12 × 12 m
+- Rooms B–G: 7.5 × 7.5 m
+- Corridor: approximately 12 × 3 m
+- Door openings: 2.7 m wide
 
-Add sensors only when they are needed by the next concrete step. Avoid placeholder links in the first robot model unless a sensor is being implemented.
+## Next milestones
 
-**Candidate future sensors:**
+### 8. Project stabilization — next
 
-- [ ] Lidar for mapping/navigation
-- [ ] Camera or depth camera on/near the manipulator gripper
-- [ ] IMU in the robot base
-- [ ] Contact/bumper sensors for simulation
-- [ ] Rear or cargo-bin camera if needed for box placement
+Bring the existing implementation to a clean, reproducible baseline before adding navigation.
 
-**Expected approach:** each sensor should be added as a separate Xacro module and documented with its frame name, topic names, and intended use.
+- [ ] Fix current `ament_flake8` and `ament_pep257` failures
+- [ ] Remove duplicate definitions from the world-builder modules
+- [ ] Add complete runtime dependencies to package manifests
+- [ ] Replace placeholder package descriptions and licenses
+- [ ] Add unit tests for geometry loading, differential-drive math and manipulator state handling
+- [ ] Add launch/integration smoke tests for the main RViz and Gazebo configurations
+- [ ] Keep README and ROADMAP status sections synchronized
 
----
+Expected result: `colcon build` and `colcon test` finish successfully with no failed tests.
 
-### 7. Physics preparation
+### 9. Physical Gazebo manipulator control
 
-Prepare the robot model for future Gazebo simulation by adding collision and inertial data in small, verifiable steps. This stage does not start Gazebo yet.
+Connect the existing manipulator action API to simulated joint actuators.
 
-**What needs to be done:**
+- [ ] Choose `gz_ros2_control`/`ros2_control` or Gazebo joint controller systems
+- [ ] Add controller configuration for rotation, lift, arm and gripper joints
+- [ ] Use simulated joint states as feedback instead of treating commands as state
+- [ ] Reduce the temporary high joint damping after controllers are active
+- [ ] Preserve action cancellation, limits and concurrent independent movement
+- [ ] Add a Gazebo manipulation launch/test scenario
 
-- [x] Add simple box collision geometry to `chassis_link`
-- [x] Add simple box collision geometry to `cargo_deck_link`
-- [x] Add collision geometry to wheels and rear support
-- [x] Add collision geometry to manipulator links
-- [x] Add approximate inertial properties to base links
-- [x] Add approximate inertial properties to wheels and rear support
-- [x] Add approximate inertial properties to manipulator links
-- [x] Document collision/inertia assumptions in README
+Expected result: manipulator commands move the physical Gazebo links and report measured state.
 
----
+### 10. Lidar and mapping
 
-### 8. Gazebo world — `cargo_bot_world` package (next)
+Add the first real simulated sensor because it directly unlocks mapping and navigation.
 
-Move the robot into a real Gazebo simulation with a full warehouse environment.
-This step is split into two sub-phases: first get the robot driving inside the warehouse
-(visual objects only, no collision response), then progressively enable physics and collisions.
+- [ ] Add a separate `cargo_bot_sensors.xacro` module
+- [ ] Add a lidar link and Gazebo ray/GPU-lidar sensor
+- [ ] Bridge `sensor_msgs/LaserScan` on `/scan`
+- [ ] Document the sensor frame, update rate, range and topic
+- [ ] Visualize scans in RViz
+- [ ] Run SLAM Toolbox in the indoor world
+- [ ] Save and version the generated map
 
-The warehouse is implemented as a **separate package `cargo_bot_world`** so it can be swapped
-with the existing RViz-only scene (`warehouse_in_rviz.launch.py`) without touching robot code.
-The `/cmd_vel` + `teleop_twist_keyboard` interface stays the same throughout.
+Expected result: the robot can build a consistent map while being driven manually.
 
----
+### 11. Nav2 autonomous navigation
 
-#### 8a. Dependencies and environment check
+- [ ] Add Nav2 and SLAM Toolbox runtime dependencies
+- [ ] Configure robot footprint, velocity limits and costmaps
+- [ ] Configure localization against the saved map
+- [ ] Add a Nav2 bringup launch file for `indoor_rooms.sdf`
+- [ ] Send `NavigateToPose` goals from RViz
+- [ ] Verify navigation through doors and around furniture
+- [ ] Document startup and troubleshooting
 
-```bash
-sudo apt install ros-jazzy-ros-gz ros-jazzy-ros-gz-bridge ros-jazzy-ros-gz-sim
-```
+Expected result: the robot autonomously reaches goals in the multi-room environment.
 
-Verify Gazebo is working:
+## Later improvements
 
-```bash
-gz sim empty.sdf
-```
+These items should follow a concrete navigation or manipulation use case:
 
-- [x] Install `ros-jazzy-ros-gz`, `ros-jazzy-ros-gz-bridge`, `ros-jazzy-ros-gz-sim`
-- [x] Verify `gz sim empty.sdf` opens the Gazebo GUI
+- [ ] Named manipulator poses such as `stowed`, `pickup` and `cargo_place`
+- [ ] Coordinated multi-joint commands and smoother motion profiles
+- [ ] Rear cargo bin/tray design
+- [ ] Dynamic boxes or pallets that can be pushed
+- [ ] Gripper/object interaction and attachment logic
+- [ ] Camera or depth camera near the gripper
+- [ ] IMU and contact/bumper sensors
+- [ ] Additional apartment-like environment if needed
 
----
+## Current package structure
 
-#### 8b. Add diff-drive plugin to the robot URDF
-
-Add a `<gazebo>` plugin block to `cargo_bot_base.xacro`. This tells Gazebo how to drive the robot:
-it subscribes to `/cmd_vel` (via bridge), applies forces to the wheel joints using the physics
-engine, and publishes `/odom`. The robot gets real mass, inertia, and gravity — the world objects
-at this stage do not yet collide with it.
-All geometry parameters (`wheel_separation`, `wheel_radius`, joint names) are read directly from
-`cargo_bot_geometry.yaml` via xacro, so changing the YAML automatically updates the plugin.
-
-**Manipulator damping note:** all manipulator joints have `<dynamics damping="10000"/>` added
-to prevent them from flailing under inertial forces while the robot drives. This is a temporary
-measure — when a proper Gazebo joint controller (e.g. `ros2_control`) is added for the
-manipulator, this damping must be removed or reduced to let the controller move the joints.
-```bash
-# After editing the URDF, rebuild and verify it parses:
-cd robotics_playground_ws
-colcon build --symlink-install --packages-select cargo_bot
-```
-
-- [x] Add `gz-sim-diff-drive-system` plugin to `cargo_bot_wheels.xacro`
-- [x] Verify URDF still parses: `check_urdf` / `xacro cargo_bot.urdf.xacro`
-- [x] Document plugin parameters in README
-
----
-
-#### 8c. Create `cargo_bot_world` package
-
-```bash
-cd robotics_playground_ws/src
-ros2 pkg create cargo_bot_world --build-type ament_python --dependencies rclpy
-mkdir -p cargo_bot_world/worlds
-mkdir -p cargo_bot_world/models
-mkdir -p cargo_bot_world/launch
-```
-
-Clone the AWS RoboMaker warehouse models:
-
-```bash
-cd cargo_bot_world
-git clone --depth 1 https://github.com/aws-robotics/aws-robomaker-small-warehouse-world.git /tmp/aws_warehouse
-cp -r /tmp/aws_warehouse/models/* models/
-```
-
-- [x] Create `cargo_bot_world` package with `ament_python`
-- [x] Add `worlds/`, `models/`, `launch/` directories
-- [x] Copy AWS RoboMaker model files into `models/`
-- [x] Register data files in `setup.py` (worlds, models, launch)
-
----
-
-#### 8d. Adapt AWS warehouse world for Gazebo Harmonic
-
-Create `worlds/small_warehouse.sdf` based on the AWS world file.
-Key changes from the original (which targets classic Gazebo 11 / ROS 1):
-
-- Replace `<physics type="ode">` with `<physics type="ignored">`
-- Add mandatory gz-sim system plugins: `Physics`, `UserCommands`, `SceneBroadcaster`
-- Add `MinimalScene` + `GzSceneManager` GUI plugins for the 3D view
-- All warehouse objects: `<static>true</static>`, **no `<collision>` tags** — visual only at this stage
-- Robot spawn position: inside the warehouse near the loading zone
-
-**Why no collision on objects yet:** the robot should drive through everything at first. Adding
-`<collision>` to individual objects is the explicit step that enables physics for that object (see 8f).
-
-- [x] Create `worlds/small_warehouse.sdf` adapted for Harmonic
-- [x] Verify the world opens in Gazebo without errors: `gz sim worlds/small_warehouse.sdf`
-- [x] Confirm all warehouse models load (shelves, walls, ground, lamps)
-
----
-
-#### 8e. Launch file `gazebo_warehouse.launch.py`
-
-The launch file starts:
-
-1. Gazebo with `small_warehouse.sdf`
-2. `robot_state_publisher` — reads URDF, publishes TF
-3. `ros_gz_sim` spawner — spawns `cargo_bot` into the running Gazebo world
-4. `ros_gz_bridge` — bridges topics between Gazebo and ROS 2:
-   - `/cmd_vel` ROS 2 → Gazebo
-   - `/odom` Gazebo → ROS 2
-   - `/tf` Gazebo → ROS 2
-   - `/joint_states` Gazebo → ROS 2
-   - `/clock` Gazebo → ROS 2
-
-```bash
-cd robotics_playground_ws
-colcon build --symlink-install --packages-select cargo_bot cargo_bot_world
-source install/setup.bash
-ros2 launch cargo_bot_world gazebo_warehouse.launch.py
-```
-
-In a second terminal:
-
-```bash
-source install/setup.bash
-ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -p repeat_rate:=10.0
-```
-
-**Expected result:** the robot appears inside the warehouse, can be driven with the keyboard,
-and passes through shelves and walls (no collision response yet).
-
-Useful checks while running:
-
-```bash
-ros2 topic list                          # should include /cmd_vel, /odom, /joint_states
-ros2 topic echo /odom                    # robot position updates while driving
-ros2 topic echo /cmd_vel                 # teleop commands arriving
-ros2 run tf2_tools view_frames           # TF tree: odom → base_footprint → ...
-```
-
-- [x] Create `launch/gazebo_warehouse.launch.py`
-- [x] Verify robot spawns in the warehouse
-- [x] Verify `/cmd_vel` moves the robot in Gazebo
-- [x] Verify `/odom` is published and updates while driving
-- [x] Document launch command and bridge topics in README
-
----
-
-#### 8f. Add physics / collision objects (later, incremental)
-
-Enable collision response one object at a time by adding `<collision>` tags. This lets you
-verify each constraint independently before adding the next one.
-
-Planned order:
-
-- [x] Add `<collision>` to the floor (ground plane) — robot should not fall through
-- [x] Add `<collision>` to the warehouse walls — robot stops at walls
-- [x] Add `<collision>` to shelf models — robot stops at shelves
-- [x] Test: drive into a wall, robot stops; drive away, robot moves
-- [x] Document which objects have collision enabled in README
-
-**Note:** collision came for free — all AWS RoboMaker models already include `<collision>`
-geometry in their own `model.sdf` files. Static objects in Gazebo do not move but do
-generate collision responses. No manual changes were needed.
-
----
-
-#### 8g. Dynamic objects (later, optional)
-
-Make some objects non-static so they can be pushed by the robot.
-
-- [ ] Set selected boxes / pallets to `<static>false</static>`
-- [ ] Verify the robot can push them
-- [ ] Document in README
-
----
-
-### 9. Warehouse environment visualization
-
-Create a simple RViz-only warehouse scene around the robot. This step is for visual context and scale checks only; it does not add Gazebo physics, collision handling, mapping, or navigation.
-
-**Planned approach:**
-
-- [x] Choose first environment type: warehouse
-- [x] Choose first visualization approach: RViz `MarkerArray`
-- [x] Create a separate `warehouse_scene_publisher` node
-- [x] Publish a floor, simple boundary walls, shelf blocks, and a loading/drop-off area
-  - [x] Publish the first floor marker
-  - [x] Publish simple boundary wall markers
-  - [x] Publish first shelf block markers
-  - [x] Split warehouse scene marker factories by object type
-  - [x] Publish the first loading/drop-off zone marker
-  - [x] Publish first box markers
-- [x] Keep dimensions realistic enough for later mapping/navigation experiments
-- [x] Add a launch file that starts the robot, warehouse scene, and RViz
-- [x] Verify that the robot can be driven visually through the warehouse scene
-- [x] Document launch commands and model structure
-
-**Current limitation:** this RViz scene is visual only. It does not prevent the robot from driving through walls, shelves, boxes, or zones. Collision handling belongs to future Gazebo/physics or navigation/costmap steps.
-
-**Future variants:**
-
-- [x] Add a multi-room indoor environment (see step below)
-- [ ] Add an apartment-like environment later if needed
-- [ ] Move the warehouse scene into Gazebo when physics simulation starts
-
----
-
-### 9b. Multi-room indoor world
-
-A second Gazebo world in `cargo_bot_world`: five interconnected rooms with a circular driving route.
-Built entirely from SDF box primitives — no external dependencies, works offline.
-
-**Layout:**
-```
-+----Room D----+----corridor----+----Room E----+
-|              |                |              |
-+----Room B----+                +----Room C----+
-          |                              |
-          +----------Room A--------------+
-                          |
-                    [entry / outside]
-```
-
-**Room dimensions:**
-- Room A (entry hall): 8 × 8 m
-- Rooms B, C, D, E: 5 × 5 m each
-- Corridor D↔E: 8 × 2 m
-
-**Circular route:** A → B → D → corridor → E → C → A
-
-**Door openings:** 1.8 m wide × 2.4 m tall with visible wood-brown box frames.
-
-**Each room has a distinct floor color** for easy orientation.
-
-**Implementation steps:**
-- [x] Create `worlds/indoor_rooms.sdf` with all rooms, walls, door frames
-- [x] Fix missing wall corner segments in rooms B and C
-- [x] Add dead-end rooms F (east of C) and G (west of B)
-- [x] Extract building model to `models/indoor_building/model.sdf` (first refactor)
-- [x] Split building into 9 per-room models for independent furnishing
-- [x] Add parametric world builder: `scripts/world_builder/` library
-- [x] Add furniture: shelves with boxes, desks, chairs, plants, floor boxes
-- [x] Scale world ×1.5 for robot navigation (rooms 7.5×7.5m, doors 2.7m wide, corridor 3m wide)
-- [x] Add `launch/indoor_rooms.launch.py` with robot spawn at Room A centre
-- [x] Test: robot drives through all rooms, collides with walls/shelves
-- [x] Document in README
-
----
-
-### 10. Nav2 (much later)
-
-Autonomous navigation: map, planner, costmap.
-
-**What needs to be done:**
-
-- [ ] Install Nav2 (`ros-jazzy-navigation2`, `ros-jazzy-nav2-bringup`)
-- [ ] Add a lidar plugin to the Gazebo robot model (publishes `sensor_msgs/LaserScan`)
-- [ ] Run SLAM Toolbox to build a map of the Gazebo world
-- [ ] Save the map, configure Nav2 with it
-- [ ] Send navigation goals via RViz `Nav2 Goal` tool or `NavigateToPose` action
-- [ ] Document in README
-
----
-
-## Package structure (current)
-
-```
+```text
 robotics_playground_ws/src/
-├── learning/                        # educational package (ament_python)
-│   ├── learning/
-│   │   ├── constants.py
-│   │   ├── topics/
-│   │   ├── services/
-│   │   ├── actions/
-│   │   ├── parameters/
-│   │   ├── lifecycle/
-│   │   ├── qos/
-│   │   ├── executors/
-│   │   ├── diagnostics/
-│   │   └── custom_interfaces/
-│   └── launch/
-├── learning_interfaces/             # custom msg/srv/action types (ament_cmake)
-│   ├── msg/RobotStatus.msg
-│   ├── srv/SetPatrolPoints.srv
-│   └── action/Patrol.action
-├── cargo_bot/                       # robot model, URDF/Xacro, nodes, RViz config
-│   ├── cargo_bot/
-│   │   ├── simple_diff_drive_sim.py
-│   │   ├── manipulator_control_node.py
-│   │   ├── passive_joint_state_publisher.py
-│   │   ├── warehouse_scene_publisher.py
-│   │   └── warehouse_scene/
-│   ├── urdf/
-│   ├── config/
-│   ├── launch/
-│   └── rviz/
-├── cargo_bot_interfaces/            # cargo_bot custom interfaces (ament_cmake)
-│   ├── action/MoveManipulatorElement.action
-│   ├── srv/CancelManipulatorOperation.srv
-│   ├── srv/GetManipulatorState.srv
-│   └── msg/ManipulatorElementState.msg
-└── cargo_bot_world/                 # Gazebo world: warehouse environment (ament_python)
-    ├── worlds/
-    │   └── small_warehouse.sdf      # AWS RoboMaker warehouse adapted for Harmonic
-    ├── models/
-    │   └── aws_robomaker_warehouse_*/
-    └── launch/
-        └── gazebo_warehouse.launch.py
+├── learning/                  # ROS 2 concept examples
+├── learning_interfaces/       # learning custom interfaces
+├── cargo_bot/                 # robot, RViz and control nodes
+├── cargo_bot_interfaces/      # manipulator custom interfaces
+└── cargo_bot_world/           # Gazebo worlds, models and world builder
 ```
 
-**Environment swap:** `warehouse_in_rviz.launch.py` (RViz-only, no physics) can be replaced
-with `gazebo_warehouse.launch.py` (Gazebo, real physics) — the `/cmd_vel` interface is the same.
+The RViz-only and Gazebo drive modes intentionally share the `/cmd_vel` interface:
+
+- `cargo_bot/warehouse_in_rviz.launch.py` — visual environment and kinematic movement;
+- `cargo_bot_world/gazebo_warehouse.launch.py` — warehouse physics;
+- `cargo_bot_world/indoor_rooms.launch.py` — multi-room physics environment.
