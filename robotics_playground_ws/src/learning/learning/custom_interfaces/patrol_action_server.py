@@ -1,13 +1,12 @@
 import time
 
+from learning.constants import ACTION_PATROL
+from learning_interfaces.action import Patrol
 import rclpy
-from rclpy.node import Node
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
-from learning_interfaces.action import Patrol
-
-from learning.constants import ACTION_PATROL
+from rclpy.node import Node
 
 MIN_POINTS = 2
 

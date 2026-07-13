@@ -1,10 +1,10 @@
 import sys
 
+from rcl_interfaces.msg import Parameter as ParameterMsg
 import rclpy
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 from rclpy.parameter_client import AsyncParameterClient
-from rcl_interfaces.msg import Parameter as ParameterMsg
 
 TARGET_NODE = 'configurable_pub'
 

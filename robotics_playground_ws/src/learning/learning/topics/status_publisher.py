@@ -1,8 +1,9 @@
 import random
+
+from learning.constants import TOPIC_STATUS
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
-from learning.constants import TOPIC_STATUS
 
 
 class StatusPublisher(Node):

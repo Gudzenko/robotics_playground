@@ -49,7 +49,9 @@ robotics_playground/              # git repository root
 
 ```bash
 cd robotics_playground_ws
-colcon build
+source /opt/ros/jazzy/setup.bash
+rosdep install --from-paths src --ignore-src --rosdistro jazzy -r -y
+colcon build --symlink-install
 source install/setup.bash
 ```
 
@@ -60,6 +62,62 @@ colcon build --symlink-install
 ```
 
 The VS Code integrated terminal sources `install/setup.bash` automatically on startup.
+
+## Testing and verification
+
+Run the complete automated baseline from the workspace directory:
+
+```bash
+cd robotics_playground_ws
+source /opt/ros/jazzy/setup.bash
+colcon build --symlink-install
+source install/setup.bash
+colcon test
+colcon test-result --verbose
+```
+
+The current baseline is **53 tests, 0 errors, 0 failures and 3 skipped copyright checks**.
+The suite includes deterministic unit tests, package style checks, a headless RViz launch smoke
+test and a headless Gazebo warehouse launch smoke test. It does not require opening a GUI.
+
+To test only one package:
+
+```bash
+colcon test --packages-select cargo_bot
+colcon test-result --verbose
+```
+
+To run one focused Python test while developing:
+
+```bash
+python3 -m pytest -q src/cargo_bot/test/test_diff_drive_math.py
+```
+
+Run package lint tests through `colcon test`, or start `pytest` from the package directory. Running
+an ament lint test directly from the workspace root can make it scan generated `build/` and
+`install/` files.
+
+After editing the parametric world builder, verify that regeneration is deterministic:
+
+```bash
+(cd src/cargo_bot_world/scripts && python3 generate.py) && git diff --exit-code -- src/cargo_bot_world/models
+```
+
+A zero exit code means the committed SDF models already match the Python definitions.
+
+Automated tests verify startup and message wiring, but appearance and interactive movement still
+need a short manual smoke check:
+
+```bash
+ros2 launch cargo_bot drive_in_rviz.launch.py visual_mode:=prod
+ros2 launch cargo_bot_world gazebo_warehouse.launch.py
+ros2 launch cargo_bot_world indoor_rooms.launch.py
+```
+
+Run these launches one at a time. For a Gazebo GUI launch, press **Play**, publish `/cmd_vel` with
+`teleop_twist_keyboard`, verify movement, then stop the launch with `Ctrl+C` before starting the
+next world. Detailed launch and teleoperation commands are documented in the package sections
+below.
 
 ---
 
@@ -259,7 +317,14 @@ This launch starts:
 
 - `robot_state_publisher`
 - `simple_diff_drive_sim`
+- `manipulator_control_node`
 - `rviz2` with fixed frame `odom`
+
+For a headless startup check, disable only the RViz process:
+
+```bash
+ros2 launch cargo_bot drive_in_rviz.launch.py use_rviz:=false
+```
 
 In a second terminal, start keyboard teleoperation:
 
@@ -269,7 +334,10 @@ source install/setup.bash
 ros2 run teleop_twist_keyboard teleop_twist_keyboard
 ```
 
-The teleop node publishes `/cmd_vel`. The kinematic simulator consumes `/cmd_vel`, publishes `odom -> base_footprint`, publishes `/odom`, and publishes wheel `/joint_states`.
+The teleop node publishes `/cmd_vel`. The kinematic simulator consumes `/cmd_vel`, publishes
+`odom -> base_footprint`, `/odom` and wheel `/joint_states`. The manipulator node publishes the
+remaining movable joint states so the complete robot remains connected and correctly coloured in
+RViz.
 
 For smoother teleoperation, run the keyboard node with a repeat rate:
 
@@ -528,6 +596,13 @@ ros2 launch cargo_bot_world gazebo_warehouse.launch.py
 
 Press **Play** (▶) in the bottom-left corner of Gazebo after it opens.
 
+For a repeatable server-only smoke check, start Gazebo without its GUI. This mode starts the
+simulation immediately:
+
+```bash
+ros2 launch cargo_bot_world gazebo_warehouse.launch.py headless:=true
+```
+
 Terminal 2:
 
 ```bash
@@ -550,10 +625,13 @@ Bridged topics:
 | `/cmd_vel` | ROS 2 → Gazebo | `geometry_msgs/Twist` |
 | `/odom` | Gazebo → ROS 2 | `nav_msgs/Odometry` |
 | `/tf` | Gazebo → ROS 2 | `tf2_msgs/TFMessage` |
-| `/joint_states` | Gazebo ↔ ROS 2 | `sensor_msgs/JointState` |
+| `/joint_states` | Gazebo → ROS 2 | `sensor_msgs/JointState` |
 | `/clock` | Gazebo → ROS 2 | `rosgraph_msgs/Clock` |
 
-The world starts **paused** — press Play before driving.
+The GUI world starts **paused** — press Play before driving. Headless mode starts it immediately.
+
+The warehouse and indoor launch files use separate Gazebo Transport partitions, so a lingering
+server from one world cannot capture the GUI, spawn or bridge processes of the other world.
 
 All warehouse objects (walls, shelves, ground) have collision geometry from the AWS models.
 The robot stops at walls and shelves. Manipulator joints are held approximately in place by
@@ -570,6 +648,10 @@ damping; the current action server does not physically actuate them in Gazebo.
 - Manipulator joints have `<dynamics damping="500"/>` to prevent flailing under inertia. Must be removed when adding a proper Gazebo joint controller.
 
 ### License note for warehouse models
+
+Project-owned source code and original files are licensed under Apache-2.0; see
+[`LICENSE`](LICENSE). Third-party assets keep their original terms and are listed in
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
 The initial version of `cargo_bot_world` uses warehouse environment models from the
 [AWS RoboMaker Small Warehouse World](https://github.com/aws-robotics/aws-robomaker-small-warehouse-world)

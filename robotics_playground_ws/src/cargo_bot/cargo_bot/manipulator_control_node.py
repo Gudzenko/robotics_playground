@@ -1,13 +1,12 @@
-import math
 import time
 import uuid
 
-from cargo_bot.cargo_bot_geometry import (
-    CargoBotGeometry,
-    LIMIT_LOWER_KEY,
-    LIMIT_UPPER_KEY,
-)
+from cargo_bot.cargo_bot_geometry import CargoBotGeometry
 from cargo_bot.joint_state_constants import JOINT_STATE_PUBLISH_PERIOD_SEC
+from cargo_bot.manipulator_commands import (
+    interpolate_position,
+    validate_move_command,
+)
 from cargo_bot.manipulator_constants import (
     ELEMENT_GRIPPER,
     MANIPULATOR_ELEMENTS,
@@ -191,7 +190,7 @@ class ManipulatorControlNode(Node):
 
             now = time.monotonic()
             progress = 1.0 - ((deadline - now) / duration_sec)
-            position = self._interpolate_position(
+            position = interpolate_position(
                 start_position,
                 target_position,
                 progress,
@@ -209,41 +208,18 @@ class ManipulatorControlNode(Node):
             operation_id,
         )
 
-    def _interpolate_position(self, start_position, target_position, progress):
-        bounded_progress = min(max(progress, 0.0), 1.0)
-        return start_position + ((target_position - start_position) * bounded_progress)
-
     def _validate_move_goal(self, goal):
-        if goal.element not in MANIPULATOR_ELEMENTS:
-            allowed_elements = ', '.join(MANIPULATOR_ELEMENTS)
-            return f"unknown element '{goal.element}'. Allowed: {allowed_elements}"
-
-        if goal.element not in self._element_limits:
-            return f"limits for element '{goal.element}' are not available"
-
-        if self._state_store.is_element_moving(goal.element):
-            return f"element '{goal.element}' is already moving"
-
-        if not math.isfinite(goal.position):
-            return 'position must be a finite number'
-
-        limits = self._element_limits[goal.element]
-        if (
-            goal.position < limits[LIMIT_LOWER_KEY]
-            or goal.position > limits[LIMIT_UPPER_KEY]
-        ):
-            return (
-                f"position for element '{goal.element}' must be between "
-                f'{limits[LIMIT_LOWER_KEY]} and {limits[LIMIT_UPPER_KEY]}'
-            )
-
-        if not math.isfinite(goal.duration_sec):
-            return 'duration_sec must be a finite number'
-
-        if goal.duration_sec < 0.0:
-            return 'duration_sec must be greater than or equal to 0.0'
-
-        return ''
+        element_is_moving = (
+            goal.element in MANIPULATOR_ELEMENTS
+            and self._state_store.is_element_moving(goal.element)
+        )
+        return validate_move_command(
+            goal.element,
+            goal.position,
+            goal.duration_sec,
+            self._element_limits,
+            element_is_moving,
+        )
 
 
 def main(args=None):

@@ -1,4 +1,4 @@
-from os.path import join
+from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
 from cargo_bot.manipulator_constants import (
@@ -15,11 +15,12 @@ LIMIT_UPPER_KEY = 'upper'
 
 
 class CargoBotGeometry:
-    def __init__(self):
-        package_share_dir = get_package_share_directory('cargo_bot')
-        geometry_path = join(package_share_dir, 'config', 'cargo_bot_geometry.yaml')
+    def __init__(self, geometry_path=None):
+        if geometry_path is None:
+            package_share_dir = Path(get_package_share_directory('cargo_bot'))
+            geometry_path = package_share_dir / 'config' / 'cargo_bot_geometry.yaml'
 
-        with open(geometry_path, 'r', encoding='utf-8') as geometry_file:
+        with Path(geometry_path).open('r', encoding='utf-8') as geometry_file:
             self._geometry = yaml.safe_load(geometry_file)
 
     def manipulator_limits(self):

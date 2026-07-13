@@ -1,7 +1,7 @@
+from learning.constants import SERVICE_GET_STATUS
 import rclpy
 from rclpy.node import Node
 from std_srvs.srv import Trigger
-from learning.constants import SERVICE_GET_STATUS
 
 
 class StatusClient(Node):

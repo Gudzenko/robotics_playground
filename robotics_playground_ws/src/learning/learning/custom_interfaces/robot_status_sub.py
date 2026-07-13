@@ -1,8 +1,7 @@
+from learning.constants import TOPIC_ROBOT_STATUS
+from learning_interfaces.msg import RobotStatus
 import rclpy
 from rclpy.node import Node
-from learning_interfaces.msg import RobotStatus
-
-from learning.constants import TOPIC_ROBOT_STATUS
 
 
 class RobotStatusSubscriber(Node):

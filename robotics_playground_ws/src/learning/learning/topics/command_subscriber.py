@@ -1,7 +1,7 @@
+from learning.constants import TOPIC_COMMAND
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
-from learning.constants import TOPIC_COMMAND
 
 
 class CommandSubscriber(Node):

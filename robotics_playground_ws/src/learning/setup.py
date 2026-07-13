@@ -1,5 +1,7 @@
-import os
 from glob import glob
+
+import os
+
 from setuptools import find_packages, setup
 
 package_name = 'learning'
@@ -18,8 +20,8 @@ setup(
     zip_safe=True,
     maintainer='gudzenko',
     maintainer_email='o.gudzenko@weegree.com',
-    description='TODO: Package description',
-    license='TODO: License declaration',
+    description='Educational ROS 2 examples for communication and runtime concepts',
+    license='Apache-2.0',
     extras_require={
         'test': [
             'pytest',

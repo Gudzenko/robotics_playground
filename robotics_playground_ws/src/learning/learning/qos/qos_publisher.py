@@ -1,11 +1,10 @@
 import sys
 
+from learning.constants import TOPIC_QOS
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
 from std_msgs.msg import String
-
-from learning.constants import TOPIC_QOS
 
 RELIABILITY_MAP = {
     'reliable': ReliabilityPolicy.RELIABLE,

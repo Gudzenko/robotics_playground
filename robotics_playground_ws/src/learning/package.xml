@@ -3,17 +3,22 @@
 <package format="3">
   <name>learning</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Educational ROS 2 examples for core communication and runtime concepts.</description>
   <maintainer email="o.gudzenko@weegree.com">gudzenko</maintainer>
-  <license>TODO: License declaration</license>
+  <license>Apache-2.0</license>
 
+  <depend>action_msgs</depend>
+  <depend>diagnostic_updater</depend>
+  <depend>example_interfaces</depend>
+  <depend>geometry_msgs</depend>
+  <depend>learning_interfaces</depend>
   <depend>rclpy</depend>
   <depend>std_msgs</depend>
   <depend>std_srvs</depend>
-  <depend>example_interfaces</depend>
-  <depend>action_msgs</depend>
-  <depend>diagnostic_updater</depend>
-  <depend>learning_interfaces</depend>
+
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

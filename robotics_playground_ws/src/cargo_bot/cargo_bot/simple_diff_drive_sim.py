@@ -1,7 +1,11 @@
-import math
 from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
+from cargo_bot.diff_drive_math import (
+    integrate_pose,
+    wheel_angular_velocities,
+    yaw_to_quaternion,
+)
 from geometry_msgs.msg import TransformStamped, Twist
 from nav_msgs.msg import Odometry
 import rclpy
@@ -9,16 +13,6 @@ from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from tf2_ros import TransformBroadcaster
 import yaml
-
-
-def yaw_to_quaternion(yaw):
-    half_yaw = yaw * 0.5
-    return {
-        'x': 0.0,
-        'y': 0.0,
-        'z': math.sin(half_yaw),
-        'w': math.cos(half_yaw),
-    }
 
 
 class SimpleDiffDriveSim(Node):
@@ -90,18 +84,23 @@ class SimpleDiffDriveSim(Node):
         linear = self.linear_velocity
         angular = self.angular_velocity
 
-        delta_x = linear * math.cos(self.yaw) * dt
-        delta_y = linear * math.sin(self.yaw) * dt
-        delta_yaw = angular * dt
+        self.x, self.y, self.yaw = integrate_pose(
+            self.x,
+            self.y,
+            self.yaw,
+            linear,
+            angular,
+            dt,
+        )
 
-        self.x += delta_x
-        self.y += delta_y
-        self.yaw = math.atan2(math.sin(self.yaw + delta_yaw), math.cos(self.yaw + delta_yaw))
-
-        left_velocity = linear - angular * self.wheel_separation * 0.5
-        right_velocity = linear + angular * self.wheel_separation * 0.5
-        self.left_wheel_position += left_velocity / self.wheel_radius * dt
-        self.right_wheel_position += right_velocity / self.wheel_radius * dt
+        left_velocity, right_velocity = wheel_angular_velocities(
+            linear,
+            angular,
+            self.wheel_separation,
+            self.wheel_radius,
+        )
+        self.left_wheel_position += left_velocity * dt
+        self.right_wheel_position += right_velocity * dt
 
         self.publish_tf(now)
         self.publish_odom(now, linear, angular)

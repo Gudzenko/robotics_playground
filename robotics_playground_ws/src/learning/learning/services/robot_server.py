@@ -1,10 +1,11 @@
 import random
 import time
+
+from example_interfaces.srv import SetBool
+from learning.constants import SERVICE_GET_STATUS, SERVICE_RESET
 import rclpy
 from rclpy.node import Node
 from std_srvs.srv import Trigger
-from example_interfaces.srv import SetBool
-from learning.constants import SERVICE_RESET, SERVICE_GET_STATUS
 
 
 class RobotServer(Node):
@@ -15,7 +16,11 @@ class RobotServer(Node):
         self._reset_count = 0
 
         self._reset_service = self.create_service(SetBool, SERVICE_RESET, self._handle_reset)
-        self._status_service = self.create_service(Trigger, SERVICE_GET_STATUS, self._handle_get_status)
+        self._status_service = self.create_service(
+            Trigger,
+            SERVICE_GET_STATUS,
+            self._handle_get_status,
+        )
 
         self.get_logger().info('Robot server is ready.')
 

@@ -22,8 +22,8 @@ setup(
     zip_safe=True,
     maintainer='gudzenko',
     maintainer_email='o.gudzenko@weegree.com',
-    description='TODO: Package description',
-    license='TODO: License declaration',
+    description='Warehouse cargo robot model, RViz visualization, and control nodes',
+    license='Apache-2.0',
     extras_require={
         'test': [
             'pytest',

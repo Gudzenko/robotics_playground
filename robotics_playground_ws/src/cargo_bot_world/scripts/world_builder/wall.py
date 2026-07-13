@@ -1,4 +1,4 @@
-from .constants import WALL_T, WALL_H, DOOR_W, DOOR_H, DOOR_HW, C_OUTER, C_INNER
+from .constants import C_INNER, C_OUTER, DOOR_H, DOOR_HW, DOOR_W, WALL_H, WALL_T
 from .sdf_helpers import solid_link
 
 
@@ -17,12 +17,11 @@ def solid_wall_x(name, wall_y, x_min, x_max, color=C_OUTER):
 
 
 def wall_with_door_y(name, wall_x, y_min, y_max, door_y, color=C_INNER):
-    """Y-axis wall at x=wall_x with a door opening centered at y=door_y.
-    Returns three links: bottom segment, top segment, above-door filler."""
+    """Create a Y-axis wall with a door opening."""
     above_h = WALL_H - DOOR_H
 
     lower_len = (door_y - DOOR_HW) - y_min
-    lower_cy  = (y_min + door_y - DOOR_HW) / 2
+    lower_cy = (y_min + door_y - DOOR_HW) / 2
     lower = solid_link(
         f'{name}_bot',
         (wall_x, lower_cy, WALL_H / 2),
@@ -31,7 +30,7 @@ def wall_with_door_y(name, wall_x, y_min, y_max, door_y, color=C_INNER):
     )
 
     upper_len = y_max - (door_y + DOOR_HW)
-    upper_cy  = (door_y + DOOR_HW + y_max) / 2
+    upper_cy = (door_y + DOOR_HW + y_max) / 2
     upper = solid_link(
         f'{name}_top',
         (wall_x, upper_cy, WALL_H / 2),
@@ -50,12 +49,11 @@ def wall_with_door_y(name, wall_x, y_min, y_max, door_y, color=C_INNER):
 
 
 def wall_with_door_x(name, wall_y, x_min, x_max, door_x, color=C_INNER):
-    """X-axis wall at y=wall_y with a door opening centered at x=door_x.
-    Returns three links: left segment, right segment, above-door filler."""
+    """Create an X-axis wall with a door opening."""
     above_h = WALL_H - DOOR_H
 
     left_len = (door_x - DOOR_HW) - x_min
-    left_cx  = (x_min + door_x - DOOR_HW) / 2
+    left_cx = (x_min + door_x - DOOR_HW) / 2
     left = solid_link(
         f'{name}_l',
         (left_cx, wall_y, WALL_H / 2),
@@ -64,7 +62,7 @@ def wall_with_door_x(name, wall_y, x_min, x_max, door_x, color=C_INNER):
     )
 
     right_len = x_max - (door_x + DOOR_HW)
-    right_cx  = (door_x + DOOR_HW + x_max) / 2
+    right_cx = (door_x + DOOR_HW + x_max) / 2
     right = solid_link(
         f'{name}_r',
         (right_cx, wall_y, WALL_H / 2),

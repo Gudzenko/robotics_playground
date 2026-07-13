@@ -1,8 +1,9 @@
 import sys
-import rclpy
-from rclpy.node import Node
+
 from example_interfaces.srv import SetBool
 from learning.constants import SERVICE_RESET
+import rclpy
+from rclpy.node import Node
 
 
 class ResetClient(Node):

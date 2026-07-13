@@ -1,5 +1,7 @@
-import os
 from glob import glob
+
+import os
+
 from setuptools import find_packages, setup
 
 package_name = 'cargo_bot_world'
@@ -17,23 +19,35 @@ setup(
         (os.path.join('share', package_name, 'launch'),
             glob('launch/*.py')),
     ] + [
-        (os.path.join('share', package_name, 'models', d), glob(os.path.join('models', d, '*.*')))
+        (
+            os.path.join('share', package_name, 'models', d),
+            glob(os.path.join('models', d, '*.*')),
+        )
         for d in os.listdir('models') if os.path.isdir(os.path.join('models', d))
     ] + [
-        (os.path.join('share', package_name, 'models', d, sub), glob(os.path.join('models', d, sub, '*.*')))
+        (
+            os.path.join('share', package_name, 'models', d, sub),
+            glob(os.path.join('models', d, sub, '*.*')),
+        )
         for d in os.listdir('models') if os.path.isdir(os.path.join('models', d))
-        for sub in os.listdir(os.path.join('models', d)) if os.path.isdir(os.path.join('models', d, sub))
+        for sub in os.listdir(os.path.join('models', d))
+        if os.path.isdir(os.path.join('models', d, sub))
     ] + [
-        (os.path.join('share', package_name, 'models', d, sub, subsub), glob(os.path.join('models', d, sub, subsub, '*.*')))
+        (
+            os.path.join('share', package_name, 'models', d, sub, subsub),
+            glob(os.path.join('models', d, sub, subsub, '*.*')),
+        )
         for d in os.listdir('models') if os.path.isdir(os.path.join('models', d))
-        for sub in os.listdir(os.path.join('models', d)) if os.path.isdir(os.path.join('models', d, sub))
-        for subsub in os.listdir(os.path.join('models', d, sub)) if os.path.isdir(os.path.join('models', d, sub, subsub))
+        for sub in os.listdir(os.path.join('models', d))
+        if os.path.isdir(os.path.join('models', d, sub))
+        for subsub in os.listdir(os.path.join('models', d, sub))
+        if os.path.isdir(os.path.join('models', d, sub, subsub))
     ],
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='gudzenko',
     maintainer_email='o.gudzenko@weegree.com',
-    description='Gazebo warehouse world for cargo_bot simulation',
+    description='Gazebo warehouse and multi-room environments for cargo_bot',
     license='Apache-2.0',
     extras_require={
         'test': ['pytest'],

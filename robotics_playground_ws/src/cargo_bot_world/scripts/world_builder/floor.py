@@ -1,5 +1,5 @@
-from .constants import FLOOR_T, GROUND_T, C_GROUND
-from .sdf_helpers import visual_link, solid_link
+from .constants import C_GROUND, FLOOR_T, GROUND_T
+from .sdf_helpers import solid_link, visual_link
 
 
 def room_floor(name, cx, cy, width, height, color):

@@ -8,9 +8,9 @@ Each room module in world_builder/rooms/ must export a build() -> Room function.
 Generated files are written to ../models/{room_name}/model.sdf
 """
 
+import importlib
 import os
 import sys
-import importlib
 
 ROOMS = [
     'building_ground',
@@ -38,7 +38,7 @@ MODEL_DESCRIPTIONS = {
     'room_corridor':   'Corridor connecting D and E (8x2m).',
 }
 
-CONFIG_TEMPLATE = '''\
+CONFIG_TEMPLATE = """\
 <?xml version="1.0"?>
 <model>
   <name>{name}</name>
@@ -46,7 +46,7 @@ CONFIG_TEMPLATE = '''\
   <sdf version="1.8">model.sdf</sdf>
   <description>{description}</description>
 </model>
-'''
+"""
 
 
 def main():

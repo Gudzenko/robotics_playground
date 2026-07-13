@@ -10,7 +10,8 @@ def solid_link(name, pose, size, color):
     return (
         f'    <link name="{name}">\n'
         f'      <pose>{cx} {cy} {cz} 0 0 0</pose>\n'
-        f'      <collision name="col"><geometry><box><size>{sx} {sy} {sz}</size></box></geometry></collision>\n'
+        f'      <collision name="col"><geometry><box>'
+        f'<size>{sx} {sy} {sz}</size></box></geometry></collision>\n'
         f'      <visual name="vis">\n'
         f'        <geometry><box><size>{sx} {sy} {sz}</size></box></geometry>\n'
         f'        <material><ambient>{c}</ambient><diffuse>{c}</diffuse></material>\n'

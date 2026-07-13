@@ -1,8 +1,14 @@
 import os
+
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    SetEnvironmentVariable,
+)
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import IfElseSubstitution, LaunchConfiguration
 from launch_ros.actions import Node
 import xacro
 
@@ -10,6 +16,7 @@ import xacro
 def generate_launch_description():
     cargo_bot_world_share = get_package_share_directory('cargo_bot_world')
     cargo_bot_share = get_package_share_directory('cargo_bot')
+    headless = LaunchConfiguration('headless')
 
     models_path = os.path.join(cargo_bot_world_share, 'models')
     world_file = os.path.join(cargo_bot_world_share, 'worlds', 'small_warehouse.sdf')
@@ -24,7 +31,16 @@ def generate_launch_description():
                 'launch', 'gz_sim.launch.py'
             )
         ),
-        launch_arguments={'gz_args': world_file}.items(),
+        launch_arguments={
+            'gz_args': [
+                IfElseSubstitution(
+                    headless,
+                    if_value='-s -r ',
+                    else_value='',
+                ),
+                world_file,
+            ],
+        }.items(),
     )
 
     robot_state_publisher = Node(
@@ -49,11 +65,11 @@ def generate_launch_description():
         package='ros_gz_bridge',
         executable='parameter_bridge',
         arguments=[
-            '/cmd_vel@geometry_msgs/msg/Twist@gz.msgs.Twist',
-            '/odom@nav_msgs/msg/Odometry@gz.msgs.Odometry',
-            '/tf@tf2_msgs/msg/TFMessage@gz.msgs.Pose_V',
-            '/joint_states@sensor_msgs/msg/JointState@gz.msgs.Model',
-            '/clock@rosgraph_msgs/msg/Clock@gz.msgs.Clock',
+            '/cmd_vel@geometry_msgs/msg/Twist]gz.msgs.Twist',
+            '/odom@nav_msgs/msg/Odometry[gz.msgs.Odometry',
+            '/tf@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V',
+            '/joint_states@sensor_msgs/msg/JointState[gz.msgs.Model',
+            '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
         ],
         parameters=[{'use_sim_time': True}],
     )
@@ -65,6 +81,12 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        DeclareLaunchArgument(
+            'headless',
+            default_value='false',
+            description='Run only the Gazebo server and start simulation immediately.',
+        ),
+        SetEnvironmentVariable('GZ_PARTITION', 'cargo_bot_warehouse'),
         SetEnvironmentVariable('GZ_SIM_RESOURCE_PATH', models_path),
         gz_sim,
         robot_state_publisher,

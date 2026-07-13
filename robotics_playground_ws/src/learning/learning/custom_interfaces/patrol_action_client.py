@@ -1,13 +1,12 @@
 import sys
 import time
 
-import rclpy
-from rclpy.node import Node
-from rclpy.action import ActionClient
 from geometry_msgs.msg import Point
-from learning_interfaces.action import Patrol
-
 from learning.constants import ACTION_PATROL
+from learning_interfaces.action import Patrol
+import rclpy
+from rclpy.action import ActionClient
+from rclpy.node import Node
 
 
 class PatrolClient(Node):

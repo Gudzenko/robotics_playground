@@ -1,8 +1,8 @@
 import random
 
+from diagnostic_updater import DiagnosticStatusWrapper, Updater
 import rclpy
 from rclpy.node import Node
-from diagnostic_updater import Updater, DiagnosticStatusWrapper
 
 
 BATTERY_WARN_THRESHOLD = 20.0

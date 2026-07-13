@@ -1,4 +1,5 @@
 import os
+
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
@@ -9,11 +10,11 @@ import xacro
 
 def generate_launch_description():
     cargo_bot_world_share = get_package_share_directory('cargo_bot_world')
-    cargo_bot_share       = get_package_share_directory('cargo_bot')
+    cargo_bot_share = get_package_share_directory('cargo_bot')
 
-    models_path  = os.path.join(cargo_bot_world_share, 'models')
-    world_file   = os.path.join(cargo_bot_world_share, 'worlds', 'indoor_rooms.sdf')
-    urdf_file    = os.path.join(cargo_bot_share, 'urdf', 'cargo_bot.urdf.xacro')
+    models_path = os.path.join(cargo_bot_world_share, 'models')
+    world_file = os.path.join(cargo_bot_world_share, 'worlds', 'indoor_rooms.sdf')
+    urdf_file = os.path.join(cargo_bot_share, 'urdf', 'cargo_bot.urdf.xacro')
 
     robot_description = xacro.process_file(urdf_file, mappings={'visual_mode': 'prod'}).toxml()
 
@@ -51,11 +52,11 @@ def generate_launch_description():
         package='ros_gz_bridge',
         executable='parameter_bridge',
         arguments=[
-            '/cmd_vel@geometry_msgs/msg/Twist@gz.msgs.Twist',
-            '/odom@nav_msgs/msg/Odometry@gz.msgs.Odometry',
-            '/tf@tf2_msgs/msg/TFMessage@gz.msgs.Pose_V',
-            '/joint_states@sensor_msgs/msg/JointState@gz.msgs.Model',
-            '/clock@rosgraph_msgs/msg/Clock@gz.msgs.Clock',
+            '/cmd_vel@geometry_msgs/msg/Twist]gz.msgs.Twist',
+            '/odom@nav_msgs/msg/Odometry[gz.msgs.Odometry',
+            '/tf@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V',
+            '/joint_states@sensor_msgs/msg/JointState[gz.msgs.Model',
+            '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
         ],
         parameters=[{'use_sim_time': True}],
     )
@@ -67,6 +68,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        SetEnvironmentVariable('GZ_PARTITION', 'cargo_bot_indoor_rooms'),
         SetEnvironmentVariable('GZ_SIM_RESOURCE_PATH', models_path),
         gz_sim,
         robot_state_publisher,

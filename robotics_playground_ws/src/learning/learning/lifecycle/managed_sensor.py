@@ -1,10 +1,9 @@
 import random
 
+from learning.constants import TOPIC_SENSOR
 import rclpy
 from rclpy.lifecycle import LifecycleNode, TransitionCallbackReturn
 from std_msgs.msg import String
-
-from learning.constants import TOPIC_SENSOR
 
 
 class ManagedSensor(LifecycleNode):

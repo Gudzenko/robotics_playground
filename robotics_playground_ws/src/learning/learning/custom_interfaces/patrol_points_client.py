@@ -1,11 +1,10 @@
 import sys
 
+from geometry_msgs.msg import Point
+from learning.constants import SERVICE_SET_PATROL_POINTS
+from learning_interfaces.srv import SetPatrolPoints
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Point
-from learning_interfaces.srv import SetPatrolPoints
-
-from learning.constants import SERVICE_SET_PATROL_POINTS
 
 
 class PatrolPointsClient(Node):

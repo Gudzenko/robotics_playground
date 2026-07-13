@@ -1,11 +1,10 @@
 import random
 
+from learning.constants import TOPIC_STATUS
+from rcl_interfaces.msg import SetParametersResult
 import rclpy
 from rclpy.node import Node
-from rcl_interfaces.msg import SetParametersResult
 from std_msgs.msg import String
-
-from learning.constants import TOPIC_STATUS
 
 
 class ConfigurablePub(Node):
