@@ -30,7 +30,9 @@ The project currently supports three levels of simulation:
 
 The robot can be driven manually through `/cmd_vel` in RViz and Gazebo. The manipulator action
 API controls joint-state visualization in RViz. A physical Gazebo controller for the manipulator,
-sensors, SLAM and autonomous navigation are not implemented yet.
+SLAM, global map localization and autonomous navigation are not implemented yet. Lidar, IMU,
+encoder odometry, deterministic noise/source substitution and EKF local odometry are implemented
+and form the verified navigation-sensor baseline.
 
 ## Completed
 
@@ -378,18 +380,322 @@ baseline, package and focused test runs, deterministic world generation, and man
 Expected stabilization result: the existing project has a reproducible green baseline before new
 robot capabilities are introduced.
 
-### 9. Lidar simulation
+### 9. Navigation sensor foundation — next
 
-Add the first real simulated sensor because it directly unlocks mapping and navigation.
+Add the three sensor sources needed by the mobile navigation path: a 2D lidar, an IMU containing
+accelerometer and gyroscope measurements, and wheel encoders derived from simulated wheel joint
+positions. Keep sensor sources, optional noise processing and navigation-facing topics separate so
+that Gazebo, deterministic test publishers, rosbag playback and future hardware drivers can be
+substituted without changing SLAM or Nav2 configuration.
 
-- [ ] Add a separate `cargo_bot_sensors.xacro` module
-- [ ] Add a lidar link and Gazebo ray/GPU-lidar sensor
-- [ ] Bridge `sensor_msgs/LaserScan` on `/scan`
-- [ ] Document the sensor frame, update rate, range and topic
-- [ ] Visualize scans in RViz
+#### Working rule
 
-Expected result: `/scan` contains valid obstacle ranges and can be inspected in RViz while the
-robot moves through the indoor world.
+Only one sensor step is implemented at a time. Before each step:
+
+1. agree on its exact scope and expected topic/frame contract;
+2. change only the files required by that step;
+3. implement the deterministic ideal path before adding noise or faults;
+4. run the unit, launch and manual checks defined for that step;
+5. review the diff and results;
+6. mark the step complete only after confirmation, then select the next step.
+
+#### Target interfaces
+
+| Data | Source-side topic | Stable navigation-facing topic | ROS message |
+|---|---|---|---|
+| 2D lidar | `/sim/scan` | `/scan` | `sensor_msgs/msg/LaserScan` |
+| IMU | `/sim/imu` | `/imu/data_raw` | `sensor_msgs/msg/Imu` |
+| Wheel joint state | `/sim/joint_states` | internal input | `sensor_msgs/msg/JointState` |
+| Encoder odometry | derived from wheel joints | `/wheel/odometry` | `nav_msgs/msg/Odometry` |
+| Fused local odometry | wheel odometry + IMU | `/odometry/filtered` | `nav_msgs/msg/Odometry` |
+| Simulator truth | Gazebo pose/odometry | `/ground_truth/odometry` | `nav_msgs/msg/Odometry` |
+
+The source-side names are private simulation inputs. The navigation-facing names are the stable
+contract used by later SLAM and Nav2 launches. Source selection and remapping must not require
+changes to consumers.
+
+#### Sensor profiles
+
+The completed sensor stack will expose named profiles:
+
+- `ideal` — deterministic measurements without injected noise or faults;
+- `realistic` — moderate configurable bias, noise and quantization;
+- `harsh` — stronger errors and optional dropouts for robustness experiments.
+
+All stochastic processing must accept an explicit random seed. Gazebo-native noise and ROS-side
+noise processing must not be enabled simultaneously for the same measurement.
+
+#### 9.1 Define sensor structure and contracts
+
+Goal: introduce the shared sensor description and configuration structure without publishing new
+sensor data yet.
+
+Implementation plan:
+
+1. Add `urdf/cargo_bot_sensors.xacro` and include it from the main robot Xacro.
+2. Add fixed `lidar_link` and `imu_link` frames with placement stored in shared geometry/config.
+3. Add sensor measurement configuration for frame names, topics, update rates and ranges.
+4. Reserve sensor profile and random-seed configuration keys without activating noise yet.
+5. Document ownership of every source and public topic to avoid duplicate publishers.
+
+Acceptance criteria:
+
+- [x] The robot description contains `lidar_link` and `imu_link`
+- [x] Sensor placement and measurement parameters are not duplicated across files
+- [x] Xacro evaluation and the existing launch smoke tests still pass
+- [x] TF connects both sensor frames to `base_link`
+- [x] No new sensor topic is claimed to work before its implementation step
+
+Completed with a separate sensor-frame Xacro module, physical placement in the shared geometry
+file and measurement/interface contracts in `config/sensors.yaml`. The compact front-centre lidar
+sits directly on the fixed chassis with its scan plane 0.3875 m above the ground; the IMU frame is
+inside the chassis near its centre. No Gazebo sensor plugin or new topic publisher is enabled yet.
+Five deterministic tests cover the links,
+fixed joints, origins, placement, topic contract and absence of premature sensor elements. The
+package builds successfully, `check_urdf` confirms the complete TF tree, and the accumulated test
+result is 58 tests, 0 failures and 3 skipped copyright checks.
+
+#### 9.2 Add ideal 2D lidar
+
+Goal: publish deterministic planar obstacle ranges from Gazebo and visualize them in RViz.
+
+Implementation plan:
+
+1. Add a Gazebo GPU lidar sensor to `lidar_link`.
+2. Bridge Gazebo data one way into the source-side scan topic.
+3. Expose the stable `/scan` interface through the sensor launch layer.
+4. Add an RViz LaserScan display.
+5. Verify that the robot body and manipulator do not unintentionally block the required field of
+   view; preserve intentional occlusion if selected during placement review.
+
+Acceptance criteria:
+
+- [x] `/scan` publishes `sensor_msgs/msg/LaserScan`
+- [x] Scan frame, angular limits, range limits, sample count and update rate match configuration
+- [x] Finite ranges respond to known collision geometry in a Gazebo world
+- [x] `NaN`, infinity and out-of-range values follow the documented policy
+- [x] RViz displays scans in the correct position relative to the robot
+- [x] Unit and headless Gazebo smoke tests cover the scan contract
+
+Implementation and automated verification are complete. Both Gazebo worlds load the Ogre2 sensor
+system; the robot publishes an ideal 15 Hz, 720-sample, 360-degree GPU lidar scan on `/sim/scan`.
+A one-way bridge fixes the ROS frame to `lidar_link`, and `lidar_relay` forwards measurements
+unchanged to `/scan`. The headless warehouse test receives a real scan, verifies its frame, shape,
+0.15–20 m limits and finite obstacle ranges. Saved RViz drive and warehouse scenes contain a
+reliable LaserScan display. Manual verification confirmed the coloured robot model, complete wheel
+transforms and red scan points in the correct RViz scene. The saved RViz QoS contract is covered by
+two additional tests. The accumulated result is 66 tests, 0 failures and 3 skipped copyright
+checks. Gazebo now also publishes both drive-wheel joint states, which keeps their RViz transforms
+complete and provides the future encoder input. Step 9.2 is complete.
+
+#### 9.3 Add ideal IMU
+
+Goal: publish deterministic accelerometer, gyroscope and orientation data through the standard ROS
+IMU message.
+
+Implementation plan:
+
+1. Add a Gazebo IMU sensor to `imu_link`.
+2. Bridge Gazebo data one way into the source-side IMU topic.
+3. Expose `/imu/data_raw` with a documented frame, update rate and covariance policy.
+4. Verify axis signs and units at rest, during straight motion and during rotation.
+5. Initially keep acceleration out of the odometry filter until its gravity and covariance
+   handling are explicitly configured and tested.
+
+Acceptance criteria:
+
+- [x] `/imu/data_raw` publishes `sensor_msgs/msg/Imu`
+- [x] Frame, update rate, units and covariance policy are documented and tested
+- [x] Stationary, accelerating and rotating behaviour matches the documented axis conventions
+- [x] Quaternion data is valid whenever orientation is reported
+- [x] Unit and launch tests cover the IMU contract
+
+Completed with a Gazebo IMU system in both worlds, an IMU sensor on `imu_link`, a one-way bridge
+to `/sim/imu` and an ideal relay publishing reliable `/imu/data_raw`. The relay preserves all
+measurements and applies explicit positive covariance diagonals from `config/sensors.yaml`.
+Deterministic unit tests cover configuration validation and covariance expansion. The headless
+Gazebo test verifies the frame, normalized quaternion, covariance, near-zero stationary linear
+acceleration, non-zero forward acceleration response and positive `angular_velocity.z` during a
+left turn. Step 9.3 is complete with 72 tests, 0 failures and 3 skipped copyright checks.
+
+#### 9.4 Derive odometry from wheel encoders
+
+Goal: calculate local wheel odometry from left and right wheel joint positions instead of treating
+the ready-made Gazebo pose estimate as encoder output.
+
+Implementation plan:
+
+1. Consume only the configured left and right wheel joints from the source joint-state topic.
+2. Convert wheel angles to configurable integer encoder ticks.
+3. Reuse the shared wheel radius and separation from robot geometry.
+4. Integrate differential-drive motion and publish `/wheel/odometry`.
+5. Preserve the ready-made Gazebo odometry separately as ground truth for comparisons.
+
+Acceptance criteria:
+
+- [x] Straight, arc and in-place rotation calculations have deterministic unit tests
+- [x] Encoder resolution is configurable and quantization is tested
+- [x] Missing joints, first sample and invalid/non-monotonic timestamps are handled safely
+- [x] `/wheel/odometry` is derived from wheel measurements, not copied from Gazebo odometry
+- [x] Ground-truth and encoder-derived odometry have separate topics and documented semantics
+
+Status: complete. Gazebo publishes only the configured drive-wheel positions on
+`/sim/joint_states`. The `wheel_odometry` node relays wheel measurements to the standard
+`/joint_states` TF input alongside the independently published manipulator states, and quantizes
+continuous angles at the configured 2048
+ticks per revolution, integrates exact differential-drive increments using the shared `0.23 m`
+wheel radius and `1.16 m` separation, and publishes `/wheel/odometry` without TF. The ready-made
+Gazebo estimate is remapped to `/ground_truth/odometry`. Deterministic tests cover straight, arc and
+in-place motion, configurable symmetric quantization, incomplete samples and invalid timestamps;
+the headless Gazebo test confirms both independent odometry publishers. Step 9.4 is complete.
+The accumulated regression result is 87 tests, 0 failures and 3 skipped copyright checks.
+
+#### 9.5 Add deterministic noise profiles
+
+Goal: inject configurable measurement imperfections without modifying sensor consumers.
+
+Initial models:
+
+- lidar: range Gaussian noise, constant bias and optional invalid/dropout samples;
+- IMU: angular-velocity and acceleration noise, constant bias and optional slow bias drift;
+- encoders: tick quantization, missed ticks and independent left/right scale error.
+
+Implementation plan:
+
+1. Implement noise math as pure functions independent of ROS nodes.
+2. Add pass-through, `realistic` and `harsh` configuration profiles.
+3. Preserve timestamps, frame IDs and message dimensions through processing.
+4. Require a configurable seed for stochastic processing.
+5. Reject configurations that enable both Gazebo-native and ROS-side noise for one measurement.
+
+Acceptance criteria:
+
+- [x] The `ideal` profile is an exact pass-through where applicable
+- [x] Equal input, configuration and seed produce equal output
+- [x] Noise statistics and boundary handling have deterministic tests
+- [x] Invalid ranges and covariance remain standards-compliant
+- [x] Switching profile does not change public topic names
+
+Status: complete. Pure ROS-independent models now cover lidar Gaussian noise, bias and `+inf`
+dropout; IMU white noise, constant bias and seeded bias drift; and encoder scale error plus missed
+integer ticks. The `ideal`, `realistic` and `harsh` profiles share a configurable base seed while
+using independent deterministic streams per sensor. Both Gazebo launches accept
+`sensor_profile:=...`; a verified `realistic` launch retained `/scan`, `/imu/data_raw` and
+`/wheel/odometry`. IMU covariance is never lower than the configured white-noise variance, and
+configuration validation rejects simultaneous Gazebo-native and ROS-side noise.
+The accumulated regression result is 104 tests, 0 failures and 3 skipped copyright checks.
+
+#### 9.5.1 Add sensor diagnostics and live comparison
+
+Goal: make ideal/noisy sensor behaviour and later filter improvements observable in real time with
+a visualization matched to each data type.
+
+Acceptance criteria:
+
+- [x] Raw and processed lidar scans are overlaid with distinct colours and compatible QoS
+- [x] Raw and processed gyroscope and accelerometer axes can be plotted live
+- [x] Both wheel angles can be plotted live
+- [x] Encoder odometry and Gazebo ground truth are shown as distinct bounded paths
+- [x] Diagnostics use only `/debug/...` outputs and do not change navigation interfaces
+
+Status: complete. `sensor_diagnostics.launch.py` starts an RViz comparison dashboard, separate
+`rqt_plot` windows for gyroscope, accelerometer and wheel positions, and a bounded path publisher.
+RViz shows raw/processed lidar in blue/red and encoder/ground-truth paths in orange/green. Every
+window can be disabled independently for headless or focused diagnostics.
+The accumulated regression result is 108 tests, 0 failures and 3 skipped copyright checks.
+
+#### 9.6 Make sensor sources replaceable
+
+Goal: switch an individual sensor between Gazebo, mock/test, rosbag and external inputs through
+launch configuration and remapping.
+
+Implementation plan:
+
+1. Add independent `lidar_source`, `imu_source` and `encoder_source` launch selections.
+2. Keep processing and public output topics unchanged across source choices.
+3. Add deterministic publishers or fixtures for automated tests.
+4. Document rosbag and external-driver remapping examples.
+5. Detect or document duplicate-publication conflicts.
+
+Acceptance criteria:
+
+- [x] Each sensor source can be replaced independently
+- [x] SLAM/navigation-facing topics remain unchanged
+- [x] Mock inputs support deterministic headless tests
+- [x] Source switching does not require editing Xacro or consumer configuration
+
+Status: complete. Both Gazebo world launches expose independent `lidar_source`, `imu_source` and
+`encoder_source` choices for `gazebo`, `mock`, `rosbag` and `external`. Relay and odometry nodes
+resolve private inputs from `sensors.yaml` while continuing to own the single public `/scan`,
+`/imu/data_raw` and `/wheel/odometry` interfaces. Gazebo bridges are conditional per sensor, and a
+deterministic mock publisher supplies standard 720-ray `LaserScan`, stationary `Imu` and increasing
+wheel `JointState` fixtures. A mixed integration run verified mock lidar and encoders alongside a
+Gazebo IMU with only the required IMU bridge active. Rosbag remapping, external-driver conventions
+and duplicate-publication constraints are documented.
+The accumulated regression result is 124 tests, 0 failures and 3 skipped copyright checks.
+
+#### 9.7 Fuse wheel odometry and IMU
+
+Goal: publish the single local odometry estimate later consumed by SLAM and Nav2.
+
+Implementation plan:
+
+1. Add `robot_localization` EKF configuration in planar `two_d_mode`.
+2. Initially fuse wheel odometry with IMU yaw rate; add other IMU fields only after review.
+3. Publish `/odometry/filtered` and exactly one `odom -> base_footprint` transform.
+4. Prevent Gazebo DiffDrive and the EKF from publishing the same TF.
+5. Compare ideal and noisy estimates against `/ground_truth/odometry`.
+
+Acceptance criteria:
+
+- [x] The EKF consumes `/wheel/odometry` and `/imu/data_raw`
+- [x] Only one node owns `odom -> base_footprint`
+- [x] Filtered odometry remains continuous during the documented sensor profile
+- [x] Automated checks compare filtered and encoder estimates with simulator ground truth
+- [x] Later SLAM and Nav2 launches can depend only on `/scan`, `/odometry/filtered` and TF
+
+Status: complete. A 50 Hz `robot_localization` EKF in `two_d_mode` fuses wheel `x`, `y`, `yaw`,
+forward velocity and yaw rate with IMU yaw rate, publishing `/odometry/filtered` and the sole ROS
+`odom -> base_footprint` transform. Gazebo DiffDrive TF moved to `/ground_truth/tf` and is no longer
+bridged to `/tf`, while `/ground_truth/odometry` remains available for comparison. Wheel messages
+now carry explicit positive pose/twist covariance. Automated isolated Gazebo routes cover both
+ideal and seeded `realistic` profiles, verify finite continuous output, and bound wheel/filtered
+position error against simulator truth to `0.25 m`/`0.5 m` for the respective short routes. The
+diagnostic RViz dashboard overlays wheel, EKF and truth trajectories in orange, purple and green.
+The accumulated regression result is 129 tests, 0 failures and 3 skipped copyright checks.
+
+#### 9.8 Final sensor verification and documentation
+
+Goal: establish a tested sensor baseline before starting SLAM.
+
+Implementation plan:
+
+1. Run the complete build and test suite.
+2. Run deterministic ideal-profile tests in the indoor world.
+3. Run a seeded realistic-profile route and record comparison metrics.
+4. Manually inspect lidar, TF and odometry in RViz.
+5. Update README and this roadmap with final commands, interfaces, profiles and limitations.
+
+Acceptance criteria:
+
+- [x] All packages build and the complete test suite passes
+- [x] Ideal and seeded realistic runs are repeatable
+- [x] Sensor topics, frames, rates, noise profiles and source selection are documented
+- [x] Ground-truth comparison results are recorded
+- [x] The stack is ready for SLAM Toolbox without sensor architecture changes
+
+Expected result: the robot exposes a replaceable and testable navigation sensor stack consisting
+of `/scan`, `/imu/data_raw`, `/wheel/odometry` and `/odometry/filtered`, with deterministic ideal
+operation, seeded noise profiles and separate simulator ground truth.
+
+Status: complete. The final build and test run reports 130 tests with 0 errors, 0 failures and
+3 skipped lint copyright checks. Headless launch tests cover the warehouse in `ideal` and seeded
+`realistic` modes and the indoor world in `ideal` mode. On the short warehouse routes, final
+position error versus Gazebo truth was 0.0012 m (wheel) and 0.0237 m (EKF) for `ideal`, and
+0.0118 m (wheel) and 0.0136 m (EKF) for seeded `realistic`. RViz verification confirms lidar
+returns and the separate wheel, EKF and ground-truth paths. Public sensor interfaces remain stable,
+so SLAM Toolbox can consume `/scan`, `/odometry/filtered` and the existing TF tree without changing
+the sensor-source architecture.
 
 ### 10. SLAM and map creation
 

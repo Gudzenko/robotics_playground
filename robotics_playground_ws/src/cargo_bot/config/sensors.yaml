@@ -1,0 +1,105 @@
+profile: ideal
+random_seed: 42
+
+lidar:
+  name: gpu_lidar
+  source_topic: /sim/scan
+  output_topic: /scan
+  frame: lidar_link
+  update_rate: 15.0
+  horizontal_samples: 720
+  min_angle: -3.14159265359
+  max_angle: 3.14159265359
+  min_range: 0.15
+  max_range: 20.0
+  range_resolution: 0.01
+  gazebo_native_noise: false
+  source_topics:
+    gazebo: /sim/scan
+    mock: /mock/scan
+    rosbag: /bag/scan
+    external: /external/scan
+
+imu:
+  name: imu_sensor
+  source_topic: /sim/imu
+  output_topic: /imu/data_raw
+  frame: imu_link
+  update_rate: 50.0
+  orientation_covariance_diagonal: [0.000001, 0.000001, 0.000001]
+  angular_velocity_covariance_diagonal: [0.000001, 0.000001, 0.000001]
+  linear_acceleration_covariance_diagonal: [0.0001, 0.0001, 0.0001]
+  gazebo_native_noise: false
+  source_topics:
+    gazebo: /sim/imu
+    mock: /mock/imu
+    rosbag: /bag/imu
+    external: /external/imu
+
+encoders:
+  source_topic: /sim/joint_states
+  robot_state_topic: /joint_states
+  output_topic: /wheel/odometry
+  ground_truth_topic: /ground_truth/odometry
+  update_rate: 50.0
+  ticks_per_revolution: 2048
+  gazebo_native_noise: false
+  pose_covariance_diagonal: [0.0025, 0.0025, 1000000.0, 1000000.0, 1000000.0, 0.01]
+  twist_covariance_diagonal: [0.01, 1000000.0, 1000000.0, 1000000.0, 1000000.0, 0.02]
+  source_topics:
+    gazebo: /sim/joint_states
+    mock: /mock/joint_states
+    rosbag: /bag/joint_states
+    external: /external/joint_states
+
+noise_profiles:
+  ideal:
+    lidar:
+      gaussian_stddev: 0.0
+      bias: 0.0
+      dropout_probability: 0.0
+    imu:
+      angular_velocity_stddev: [0.0, 0.0, 0.0]
+      angular_velocity_bias: [0.0, 0.0, 0.0]
+      linear_acceleration_stddev: [0.0, 0.0, 0.0]
+      linear_acceleration_bias: [0.0, 0.0, 0.0]
+      bias_drift_stddev: [0.0, 0.0, 0.0]
+    encoders:
+      missed_tick_probability: 0.0
+      left_scale_error: 0.0
+      right_scale_error: 0.0
+  realistic:
+    lidar:
+      gaussian_stddev: 0.01
+      bias: 0.005
+      dropout_probability: 0.002
+    imu:
+      angular_velocity_stddev: [0.001, 0.001, 0.002]
+      angular_velocity_bias: [0.0002, -0.0002, 0.0005]
+      linear_acceleration_stddev: [0.02, 0.02, 0.03]
+      linear_acceleration_bias: [0.01, -0.01, 0.02]
+      bias_drift_stddev: [0.00001, 0.00001, 0.00002]
+    encoders:
+      missed_tick_probability: 0.001
+      left_scale_error: 0.001
+      right_scale_error: -0.001
+  harsh:
+    lidar:
+      gaussian_stddev: 0.05
+      bias: 0.03
+      dropout_probability: 0.03
+    imu:
+      angular_velocity_stddev: [0.01, 0.01, 0.02]
+      angular_velocity_bias: [0.002, -0.002, 0.005]
+      linear_acceleration_stddev: [0.15, 0.15, 0.25]
+      linear_acceleration_bias: [0.08, -0.08, 0.15]
+      bias_drift_stddev: [0.0005, 0.0005, 0.001]
+    encoders:
+      missed_tick_probability: 0.02
+      left_scale_error: 0.015
+      right_scale_error: -0.01
+
+localization:
+  output_topic: /odometry/filtered
+  odom_frame: odom
+  base_frame: base_footprint

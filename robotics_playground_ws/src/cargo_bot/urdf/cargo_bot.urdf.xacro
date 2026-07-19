@@ -7,11 +7,14 @@
   <xacro:include filename="$(find cargo_bot)/urdf/cargo_bot_base.xacro" />
   <xacro:include filename="$(find cargo_bot)/urdf/cargo_bot_wheels.xacro" />
   <xacro:include filename="$(find cargo_bot)/urdf/cargo_bot_manipulator.xacro" />
+  <xacro:include filename="$(find cargo_bot)/urdf/cargo_bot_sensors.xacro" />
 
   <xacro:property name="geometry" value="${xacro.load_yaml('$(find cargo_bot)/config/cargo_bot_geometry.yaml')}" />
+  <xacro:property name="sensor_config" value="${xacro.load_yaml('$(find cargo_bot)/config/sensors.yaml')}" />
 
   <xacro:cargo_bot_materials visual_mode="$(arg visual_mode)" />
   <xacro:cargo_bot_base geometry="${geometry}" />
   <xacro:cargo_bot_wheels geometry="${geometry}" />
   <xacro:cargo_bot_manipulator geometry="${geometry}" />
+  <xacro:cargo_bot_sensors geometry="${geometry}" sensor_config="${sensor_config}" />
 </robot>

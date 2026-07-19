@@ -1,0 +1,150 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+  - Class: rviz_common/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 0.5
+      Cell Size: 1
+      Class: rviz_default_plugins/Grid
+      Color: 160; 160; 164
+      Enabled: true
+      Name: Grid
+      Plane: XY
+      Plane Cell Count: 20
+      Reference Frame: <Fixed Frame>
+      Value: true
+    - Class: rviz_default_plugins/RobotModel
+      Description File: ""
+      Description Source: Topic
+      Description Topic:
+        Value: /robot_description
+      Enabled: true
+      Name: RobotModel
+      Value: true
+    - Alpha: 0.65
+      Class: rviz_default_plugins/LaserScan
+      Color: 40; 120; 255
+      Decay Time: 0
+      Enabled: true
+      Name: Lidar raw (Gazebo)
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.025
+      Style: Points
+      Topic: /sim/scan
+      Unreliable: true
+      Use Fixed Frame: true
+      Value: true
+    - Alpha: 1
+      Class: rviz_default_plugins/LaserScan
+      Color: 255; 40; 40
+      Decay Time: 0
+      Enabled: true
+      Name: Lidar processed
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.03
+      Style: Points
+      Topic: /scan
+      Unreliable: false
+      Use Fixed Frame: true
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz_default_plugins/Path
+      Color: 255; 170; 0
+      Enabled: true
+      Head Diameter: 0.2
+      Head Length: 0.15
+      Length: 0.3
+      Line Style: Lines
+      Line Width: 0.04
+      Name: Wheel odometry path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0.03
+      Pose Color: 255; 170; 0
+      Pose Style: None
+      Radius: 0.03
+      Shaft Diameter: 0.1
+      Shaft Length: 0.1
+      Topic: /debug/wheel_path
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz_default_plugins/Path
+      Color: 180; 80; 255
+      Enabled: true
+      Head Diameter: 0.2
+      Head Length: 0.15
+      Length: 0.3
+      Line Style: Lines
+      Line Width: 0.04
+      Name: EKF filtered path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0.035
+      Pose Color: 180; 80; 255
+      Pose Style: None
+      Radius: 0.03
+      Shaft Diameter: 0.1
+      Shaft Length: 0.1
+      Topic: /debug/filtered_path
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz_default_plugins/Path
+      Color: 20; 220; 80
+      Enabled: true
+      Head Diameter: 0.2
+      Head Length: 0.15
+      Length: 0.3
+      Line Style: Lines
+      Line Width: 0.04
+      Name: Ground truth path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0.04
+      Pose Color: 20; 220; 80
+      Pose Style: None
+      Radius: 0.03
+      Shaft Diameter: 0.1
+      Shaft Length: 0.1
+      Topic: /debug/ground_truth_path
+      Value: true
+  Enabled: true
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: odom
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+  Value: true
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 8
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Name: Current View
+      Pitch: 0.65
+      Target Frame: odom
+      Yaw: 0.8
+Window Geometry:
+  Height: 900
+  Width: 1300

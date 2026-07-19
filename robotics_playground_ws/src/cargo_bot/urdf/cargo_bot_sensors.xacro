@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="cargo_bot_sensors" params="geometry sensor_config">
+    <joint name="${geometry.sensors.lidar.joint}" type="fixed">
+      <parent link="${geometry.sensors.lidar.parent}" />
+      <child link="${geometry.sensors.lidar.link}" />
+      <origin
+        xyz="${geometry.sensors.lidar.x} ${geometry.sensors.lidar.y} ${geometry.sensors.lidar.z}"
+        rpy="${geometry.sensors.lidar.roll} ${geometry.sensors.lidar.pitch} ${geometry.sensors.lidar.yaw}" />
+    </joint>
+
+    <link name="${geometry.sensors.lidar.link}">
+      <xacro:cylinder_inertial
+        mass="${geometry.sensors.lidar.mass}"
+        radius="${geometry.sensors.lidar.radius}"
+        length="${geometry.sensors.lidar.height}" />
+      <visual>
+        <geometry>
+          <cylinder
+            radius="${geometry.sensors.lidar.radius}"
+            length="${geometry.sensors.lidar.height}" />
+        </geometry>
+        <material name="sensor_black" />
+      </visual>
+    </link>
+
+    <gazebo reference="${geometry.sensors.lidar.link}">
+      <sensor name="${sensor_config.lidar.name}" type="gpu_lidar">
+        <topic>${sensor_config.lidar.source_topic}</topic>
+        <update_rate>${sensor_config.lidar.update_rate}</update_rate>
+        <always_on>true</always_on>
+        <visualize>false</visualize>
+        <lidar>
+          <scan>
+            <horizontal>
+              <samples>${sensor_config.lidar.horizontal_samples}</samples>
+              <resolution>1</resolution>
+              <min_angle>${sensor_config.lidar.min_angle}</min_angle>
+              <max_angle>${sensor_config.lidar.max_angle}</max_angle>
+            </horizontal>
+          </scan>
+          <range>
+            <min>${sensor_config.lidar.min_range}</min>
+            <max>${sensor_config.lidar.max_range}</max>
+            <resolution>${sensor_config.lidar.range_resolution}</resolution>
+          </range>
+        </lidar>
+      </sensor>
+    </gazebo>
+
+    <joint name="${geometry.sensors.imu.joint}" type="fixed">
+      <parent link="${geometry.sensors.imu.parent}" />
+      <child link="${geometry.sensors.imu.link}" />
+      <origin
+        xyz="${geometry.sensors.imu.x} ${geometry.sensors.imu.y} ${geometry.sensors.imu.z}"
+        rpy="${geometry.sensors.imu.roll} ${geometry.sensors.imu.pitch} ${geometry.sensors.imu.yaw}" />
+    </joint>
+
+    <link name="${geometry.sensors.imu.link}">
+      <xacro:box_inertial
+        mass="${geometry.sensors.imu.mass}"
+        length="${geometry.sensors.imu.length}"
+        width="${geometry.sensors.imu.width}"
+        height="${geometry.sensors.imu.height}" />
+      <visual>
+        <geometry>
+          <box
+            size="${geometry.sensors.imu.length} ${geometry.sensors.imu.width} ${geometry.sensors.imu.height}" />
+        </geometry>
+        <material name="sensor_black" />
+      </visual>
+    </link>
+
+    <gazebo reference="${geometry.sensors.imu.link}">
+      <sensor name="${sensor_config.imu.name}" type="imu">
+        <topic>${sensor_config.imu.source_topic}</topic>
+        <update_rate>${sensor_config.imu.update_rate}</update_rate>
+        <always_on>true</always_on>
+        <visualize>false</visualize>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+</robot>

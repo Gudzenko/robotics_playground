@@ -2,6 +2,35 @@ frames:
   base_footprint: base_footprint
   base_link: base_link
 
+sensors:
+  lidar:
+    link: lidar_link
+    joint: lidar_joint
+    parent: base_link
+    x: 0.79
+    y: 0.0
+    z: 0.1575
+    roll: 0.0
+    pitch: 0.0
+    yaw: 0.0
+    radius: 0.025
+    height: 0.035
+    mass: 0.2
+  imu:
+    link: imu_link
+    joint: imu_joint
+    parent: base_link
+    x: 0.0
+    y: 0.0
+    z: 0.06
+    roll: 0.0
+    pitch: 0.0
+    yaw: 0.0
+    length: 0.08
+    width: 0.06
+    height: 0.025
+    mass: 0.1
+
 base:
   base_link_z: 0.23
 

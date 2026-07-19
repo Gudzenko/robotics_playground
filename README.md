@@ -20,8 +20,8 @@ kinematic visualization in RViz.
 Not implemented yet:
 
 - physical Gazebo controllers for the manipulator;
-- lidar, camera streams, IMU and other simulated sensor data;
-- SLAM, localization and Nav2 autonomous navigation;
+- camera streams and other simulated sensor data;
+- SLAM, global map localization and Nav2 autonomous navigation;
 - physical grasping or object attachment.
 
 ## Repository structure
@@ -76,9 +76,10 @@ colcon test
 colcon test-result --verbose
 ```
 
-The current baseline is **53 tests, 0 errors, 0 failures and 3 skipped copyright checks**.
+The current baseline is **130 tests, 0 errors, 0 failures and 3 skipped copyright checks**.
 The suite includes deterministic unit tests, package style checks, a headless RViz launch smoke
-test and a headless Gazebo warehouse launch smoke test. It does not require opening a GUI.
+test, isolated warehouse tests for ideal and realistic sensors, and an ideal indoor-world test. It
+does not require opening a GUI.
 
 To test only one package:
 
@@ -127,7 +128,10 @@ Warehouse cargo robot model and control package.
 
 The current version includes RViz visualization, TF structure, a simple kinematic movement layer,
 a visual manipulator model, and the robot description used by Gazebo. Gazebo worlds and launch
-files live in the separate `cargo_bot_world` package. Sensor data and navigation are not included yet.
+files live in the separate `cargo_bot_world` package. The ideal Gazebo lidar publishes `/scan`,
+the IMU publishes `/imu/data_raw`, and quantized wheel encoders produce `/wheel/odometry`.
+Deterministic sensor noise profiles and planar EKF local odometry are available; SLAM, global map
+localization and autonomous navigation are not included yet.
 
 - **Build type:** `ament_python`
 - **Current model:** heavy cargo platform with front drive wheels, rear support caster, rear cargo deck, and front manipulator
@@ -166,7 +170,8 @@ ros2 launch cargo_bot display.launch.py visual_mode:=prod
 ```
 cargo_bot/
 ├── config/
-│   └── cargo_bot_geometry.yaml
+│   ├── cargo_bot_geometry.yaml
+│   └── sensors.yaml
 ├── launch/
 │   ├── drive_in_rviz.launch.py
 │   ├── manipulator_in_rviz.launch.py
@@ -182,13 +187,313 @@ cargo_bot/
     ├── cargo_bot_inertial.xacro
     ├── cargo_bot_manipulator.xacro
     ├── cargo_bot_materials.xacro
+    ├── cargo_bot_sensors.xacro
     └── cargo_bot_wheels.xacro
 ```
 
-The model is split into Xacro modules so the base, wheels, materials and manipulator can be
-changed independently. A separate sensor module can be added when the first sensor is implemented.
+The model is split into Xacro modules so the base, wheels, materials, manipulator and sensors can
+be changed independently. The sensor module defines the lidar and IMU frames and visual housings;
+the ideal GPU lidar and IMU plugins are active in Gazebo worlds.
 
 Shared robot geometry is stored in `config/cargo_bot_geometry.yaml`. The Xacro model and control nodes read this file so geometry, limits, frame names, and joint names stay consistent.
+
+The compact lidar housing sits directly on the front edge of the fixed chassis. Its scan plane is
+0.3875 m above the ground; it is not attached to the rotating manipulator mount.
+
+### Ideal lidar
+
+Gazebo publishes ideal GPU lidar measurements on the internal `/sim/scan` topic. The
+`lidar_relay` node forwards them unchanged to the stable navigation-facing `/scan` topic. This
+separation allows later noise processing and source replacement without changing SLAM or Nav2.
+
+Current lidar contract:
+
+| Property | Value |
+|---|---|
+| Frame | `lidar_link` |
+| ROS message | `sensor_msgs/msg/LaserScan` |
+| Update rate | 15 Hz |
+| Field of view | 360 degrees |
+| Samples | 720 |
+| Minimum range | 0.15 m |
+| Maximum range | 20 m |
+| Range resolution | 0.01 m |
+
+To inspect the scan, start the running Gazebo world together with RViz:
+
+```bash
+ros2 launch cargo_bot_world gazebo_warehouse.launch.py use_rviz:=true
+```
+
+When starting RViz separately, it must use the Gazebo simulation clock:
+
+```bash
+rviz2 -d "$(ros2 pkg prefix cargo_bot)/share/cargo_bot/rviz/cargo_bot_drive.rviz" \
+  --ros-args -p use_sim_time:=true
+```
+
+The internal `/sim/scan` input uses best-effort sensor QoS. The stable `/scan` output is reliable
+so both reliable RViz displays and best-effort navigation consumers can subscribe to it.
+
+### Ideal IMU
+
+Gazebo publishes ideal orientation, angular velocity and linear acceleration on `/sim/imu`. The
+`imu_relay` node applies the documented covariance policy and publishes the stable
+`sensor_msgs/msg/Imu` interface on `/imu/data_raw`.
+
+| Property | Value |
+|---|---|
+| Frame | `imu_link` |
+| Update rate | 50 Hz |
+| Orientation covariance diagonal | `[1e-6, 1e-6, 1e-6]` |
+| Angular velocity covariance diagonal | `[1e-6, 1e-6, 1e-6]` |
+| Linear acceleration covariance diagonal | `[1e-4, 1e-4, 1e-4]` |
+
+After the spawned robot settles on the floor, the Gazebo IMU reports approximately `9.8 m/s²`
+along its vertical axis. Tests verify a non-zero forward acceleration response when motion starts and positive
+`angular_velocity.z` during a left turn. All IMU fields are published, but the later EKF step will
+initially consume only yaw rate together with wheel odometry.
+
+Inspect one measurement while a Gazebo world is running:
+
+```bash
+ros2 topic echo /imu/data_raw --once
+ros2 topic hz /imu/data_raw
+```
+
+### Wheel encoders and odometry
+
+Gazebo publishes only the configured left and right drive-wheel positions on
+`/sim/joint_states`. The `wheel_odometry` node also relays these wheel states to `/joint_states`,
+where they coexist with the manipulator joint states used by `robot_state_publisher`. It converts
+each continuous wheel angle to a signed
+integer count at 2048 ticks per revolution, then integrates differential-drive motion using the
+shared wheel radius (`0.23 m`) and separation (`1.16 m`). Its navigation-facing output is
+`nav_msgs/msg/Odometry` on `/wheel/odometry`, with frame `odom` and child frame
+`base_footprint`.
+
+The result is an encoder estimate: it includes tick quantization and is not copied from Gazebo's
+pose estimate. Gazebo odometry remains available separately on `/ground_truth/odometry` for later
+accuracy comparisons. The encoder node deliberately does not publish TF. The EKF is the sole owner
+of `odom -> base_footprint`.
+
+Inspect both estimates while a Gazebo world is running:
+
+```bash
+ros2 topic echo /sim/joint_states --once
+ros2 topic echo /wheel/odometry --once
+ros2 topic echo /ground_truth/odometry --once
+```
+
+### Deterministic sensor noise profiles
+
+Both Gazebo world launches accept `sensor_profile:=ideal|realistic|harsh`. The default `ideal`
+profile is a pass-through apart from encoder tick quantization. `realistic` adds moderate errors;
+`harsh` raises noise, bias, lidar dropout and missed encoder ticks for robustness testing.
+
+| Sensor | Configured ROS-side models |
+|---|---|
+| Lidar | Gaussian range noise, constant range bias, `+inf` dropout samples |
+| IMU | White angular/acceleration noise, constant bias, seeded slow bias drift |
+| Encoders | Integer quantization, missed ticks, independent wheel scale errors |
+
+All stochastic processing uses `random_seed` from `config/sensors.yaml`. Each sensor receives an
+independent deterministic random stream, so equal input, profile and seed reproduce equal output.
+Timestamps, frame IDs, array dimensions and public topic names are unchanged. IMU covariance is
+raised when necessary to cover the configured white-noise variance. Configuration validation
+rejects simultaneous Gazebo-native and ROS-side noise for the same sensor.
+
+Run the warehouse with moderate sensor imperfections:
+
+```bash
+ros2 launch cargo_bot_world gazebo_warehouse.launch.py \
+  use_rviz:=true sensor_profile:=realistic
+```
+
+For the strongest test profile:
+
+```bash
+ros2 launch cargo_bot_world gazebo_warehouse.launch.py sensor_profile:=harsh
+```
+
+The output interfaces stay `/scan`, `/imu/data_raw` and `/wheel/odometry`, so consumers do not
+need remapping when the profile changes.
+
+### Sensor diagnostics and live comparison
+
+Start the simulation first, preferably with visible noise and without its regular RViz window:
+
+```bash
+ros2 launch cargo_bot_world gazebo_warehouse.launch.py \
+  sensor_profile:=realistic use_rviz:=false
+```
+
+In a second sourced terminal, start the sensor-specific dashboard:
+
+```bash
+ros2 launch cargo_bot sensor_diagnostics.launch.py
+```
+
+The dashboard selects a visualization suited to each measurement:
+
+| Measurement | Visualization |
+|---|---|
+| Lidar | RViz overlay: raw `/sim/scan` is blue and processed `/scan` is red |
+| Gyroscope | Live `rqt_plot` window with raw and processed X/Y/Z angular velocity |
+| Accelerometer | Live `rqt_plot` window with raw and processed X/Y/Z acceleration |
+| Encoders | Live plot of left/right wheel angles from `/sim/joint_states` |
+| Odometry | RViz paths: wheel is orange, EKF is purple and Gazebo truth is green |
+
+With `sensor_profile:=ideal`, raw and processed curves or points should overlap. The differences
+become visible with `realistic` and especially `harsh`. The path helper publishes only diagnostic
+topics `/debug/wheel_path`, `/debug/filtered_path` and `/debug/ground_truth_path`; navigation does
+not consume them.
+
+Individual windows can be disabled when they are not needed:
+
+```bash
+ros2 launch cargo_bot sensor_diagnostics.launch.py \
+  use_rviz:=false use_imu_plots:=true use_encoder_plot:=false
+```
+
+### Replaceable sensor sources
+
+Each sensor input can be selected independently in both Gazebo world launches. Processing, noise
+profiles and public consumer topics remain unchanged.
+
+| Selection | Lidar input | IMU input | Encoder input |
+|---|---|---|---|
+| `gazebo` | `/sim/scan` | `/sim/imu` | `/sim/joint_states` |
+| `mock` | `/mock/scan` | `/mock/imu` | `/mock/joint_states` |
+| `rosbag` | `/bag/scan` | `/bag/imu` | `/bag/joint_states` |
+| `external` | `/external/scan` | `/external/imu` | `/external/joint_states` |
+
+For example, use a deterministic mock lidar while retaining Gazebo IMU and encoders:
+
+```bash
+ros2 launch cargo_bot_world gazebo_warehouse.launch.py \
+  lidar_source:=mock imu_source:=gazebo encoder_source:=gazebo
+```
+
+The mock fixture publishes reproducible 720-ray scans, stationary IMU data and steadily increasing
+wheel positions. It is intended for graph tests and processing diagnostics, not realistic vehicle
+dynamics.
+
+To record source-side data for later playback:
+
+```bash
+ros2 bag record -o sensor_sources \
+  /sim/scan /sim/imu /sim/joint_states
+```
+
+Start the world with bag inputs selected, then play the recorded private inputs under the reserved
+bag names:
+
+```bash
+ros2 launch cargo_bot_world gazebo_warehouse.launch.py \
+  lidar_source:=rosbag imu_source:=rosbag encoder_source:=rosbag
+```
+
+```bash
+ros2 bag play sensor_sources --remap \
+  /sim/scan:=/bag/scan \
+  /sim/imu:=/bag/imu \
+  /sim/joint_states:=/bag/joint_states
+```
+
+Hardware or another simulator follows the same rule: remap its `LaserScan`, `Imu` and `JointState`
+outputs to the corresponding `/external/...` inputs and select `external` for those sensors. Only
+one publisher may drive each selected private input. Do not replay `/scan`, `/imu/data_raw` or
+`/wheel/odometry` while the processing nodes are active, because that would create duplicate public
+publishers. Gazebo sensor bridges are automatically disabled for every non-Gazebo selection.
+
+When using the diagnostics dashboard with non-Gazebo sources, point its raw plots at the selected
+private topics. For an all-mock run:
+
+```bash
+ros2 launch cargo_bot sensor_diagnostics.launch.py \
+  lidar_input_topic:=/mock/scan \
+  imu_input_topic:=/mock/imu \
+  encoder_input_topic:=/mock/joint_states
+```
+
+### EKF local odometry
+
+`robot_localization` runs a planar EKF at 50 Hz and publishes `/odometry/filtered`. The initial
+fusion policy intentionally stays conservative:
+
+- wheel odometry contributes planar `x`, `y`, `yaw`, forward velocity and yaw rate;
+- IMU contributes only gyroscope `angular_velocity.z`;
+- IMU orientation and linear acceleration remain excluded until their conventions and benefit are
+  evaluated separately.
+
+The EKF is the only owner of `odom -> base_footprint`. Gazebo still publishes the independent
+`/ground_truth/odometry` comparison stream, but its DiffDrive TF is moved to the private
+`/ground_truth/tf` Gazebo topic and is not bridged into ROS `/tf`.
+
+Inspect the fused estimate and TF while either world is running:
+
+```bash
+ros2 topic echo /odometry/filtered --once
+ros2 run tf2_ros tf2_echo odom base_footprint
+```
+
+The diagnostics RViz overlays wheel odometry in orange, EKF output in purple and ground truth in
+green. Automated ideal and seeded `realistic` routes verify finite continuous EKF output; their
+position-error limits relative to simulator truth are respectively `0.25 m` and `0.5 m` for the
+short integration routes.
+
+### Verified sensor baseline
+
+The sensor stack is now the baseline for the SLAM stage. Its stable interfaces are:
+
+| Sensor | Public topic | Frame | Rate |
+|---|---|---|---:|
+| Lidar | `/scan` | `lidar_link` | 15 Hz |
+| IMU | `/imu/data_raw` | `imu_link` | 50 Hz |
+| Wheel encoders | `/wheel/odometry` | `odom` → `base_footprint` | 50 Hz |
+| EKF | `/odometry/filtered` | `odom` → `base_footprint` | 50 Hz |
+
+Run the final automated verification from the workspace:
+
+```bash
+source /opt/ros/jazzy/setup.bash
+colcon build --packages-select cargo_bot cargo_bot_world --symlink-install
+source install/setup.bash
+colcon test --packages-select cargo_bot cargo_bot_world
+colcon test-result --test-result-base build --all
+```
+
+The verified result is `130 tests, 0 errors, 0 failures, 3 skipped`. On the short deterministic
+routes, the final position errors relative to Gazebo ground truth were:
+
+| Profile | Wheel odometry | EKF |
+|---|---:|---:|
+| `ideal` | 0.0012 m | 0.0237 m |
+| seeded `realistic` | 0.0118 m | 0.0136 m |
+
+For a visual check, launch the indoor world:
+
+```bash
+ros2 launch cargo_bot_world indoor_rooms.launch.py \
+  sensor_profile:=realistic
+```
+
+Then start the diagnostics dashboard in a second sourced terminal:
+
+```bash
+ros2 launch cargo_bot sensor_diagnostics.launch.py
+```
+
+In RViz, lidar returns are red, wheel odometry is orange, the EKF path is purple and Gazebo ground
+truth is green. `ros2 run tf2_ros tf2_echo odom base_footprint` should continuously show the EKF
+transform. The `ideal`, seeded `realistic` and seeded `harsh` profiles, plus the independent
+`gazebo`, `mock`, `rosbag` and `external` source selectors, retain the same public topics.
+
+Current limitations are intentional: localization is planar; the EKF uses IMU yaw rate but not IMU
+orientation or acceleration; mock data does not simulate full vehicle dynamics; Gazebo ground truth
+is for diagnostics only. Gazebo may also print non-fatal EGL and unsupported gripper mimic-constraint
+warnings. SLAM and the `map -> odom` transform are not part of this baseline yet.
 
 ### Current robot layout
 
@@ -207,7 +512,9 @@ base_footprint
 └── base_link
     ├── chassis_link
     ├── cargo_deck_link
+    ├── imu_link
     ├── left_wheel_link
+    ├── lidar_link
     ├── right_wheel_link
     ├── rear_support_wheel_link
     └── manipulator_mount_link
@@ -542,6 +849,12 @@ ros2 launch cargo_bot_world indoor_rooms.launch.py
 
 Press **Play** (▶) in Gazebo. Robot spawns in the centre of Room A facing north.
 
+For a server-only run that starts immediately:
+
+```bash
+ros2 launch cargo_bot_world indoor_rooms.launch.py headless:=true
+```
+
 Terminal 2 — keyboard teleoperation:
 
 ```bash
@@ -601,6 +914,16 @@ simulation immediately:
 
 ```bash
 ros2 launch cargo_bot_world gazebo_warehouse.launch.py headless:=true
+```
+
+Both Gazebo world launches support `headless:=true`. They also set a world-specific
+`gz_partition` by default so warehouse and indoor Gazebo traffic cannot mix. Automated tests pass
+a unique partition per process; normally you should keep the defaults. Set it explicitly only when
+running multiple instances of the same world:
+
+```bash
+ros2 launch cargo_bot_world gazebo_warehouse.launch.py \
+  headless:=true gz_partition:=warehouse_experiment_2
 ```
 
 Terminal 2:
