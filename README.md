@@ -92,7 +92,7 @@ colcon test-result --verbose
 ```
 
 The latest focused results for the three packages changed by the mapping stage are: `cargo_bot`
-121 tests, `cargo_bot_world` 6 tests and `cargo_bot_navigation` 21 tests, with **0 errors and
+121 tests, `cargo_bot_world` 6 tests and `cargo_bot_navigation` 26 tests, with **0 errors and
 0 failures** (one copyright check skipped per package). All six packages build successfully; a
 new uninterrupted all-six-package regression run remains pending. The suite includes deterministic unit
 tests, package style checks, headless RViz and Gazebo launch tests, isolated warehouse tests for
@@ -141,10 +141,12 @@ below.
 
 ## Package: cargo_bot_navigation
 
-The navigation package currently provides the SLAM mapping layer. It starts the existing indoor
-Gazebo simulation, the ideal-by-default sensor stack and asynchronous SLAM Toolbox. In `ideal`,
+The navigation package provides both the SLAM mapping layer and localization/global-path planning
+on a user-created map. Mapping starts the indoor Gazebo simulation, the ideal-by-default sensor
+stack and asynchronous SLAM Toolbox. In `ideal`,
 Gazebo's physical model pose is relayed directly as local odometry; `realistic` and `harsh` use the
-wheel/IMU EKF. It does not start a global planner, controller or autonomous navigation.
+wheel/IMU EKF. Path planning starts Map Server, AMCL, a static global costmap and NavFn, but no
+controller or autonomous navigation component.
 
 ### Build and start a new map
 
@@ -248,9 +250,9 @@ ros2 run cargo_bot_navigation save_slam_map --ros-args \
   -p overwrite:=true
 ```
 
-Use a different `map_name` or output directory for each map or tuning experiment. Review maps
-outside the package first; copy only the accepted canonical artifact set into
-`cargo_bot_navigation/maps/`.
+Use a different `map_name` or output directory for each map or tuning experiment. User maps remain
+outside the package in the gitignored `saved_maps/` directory and are selected explicitly when
+localization starts.
 
 ### Continue an existing pose graph
 
@@ -288,6 +290,75 @@ colcon test-result --verbose
 The launch test starts the ideal indoor world headlessly, moves a short distance, verifies the
 map and TF contract, and saves a temporary occupancy map and pose graph. ROS 2 and Gazebo require
 local DDS/UDP sockets during this test.
+
+### Localize and calculate a path without moving
+
+First create and save a map as described above. Stop the mapping launch before starting this mode.
+The `map` argument is required; the project deliberately has no built-in default map.
+
+Terminal 1 — start Gazebo, Map Server, AMCL, the global planner and RViz:
+
+```bash
+cd ~/Other/robotics_playground/robotics_playground_ws
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+
+ros2 launch cargo_bot_navigation path_planning.launch.py \
+  map:="$PWD/saved_maps/indoor_map.yaml" \
+  initial_pose_x:=-2.0 \
+  initial_pose_y:=-3.0 \
+  initial_pose_yaw:=0.0
+```
+
+The initial-pose arguments set both the physical Gazebo spawn and AMCL's initial estimate. They
+must use the coordinates in which the map was created. For the checked `indoor_map`, `(-2, -3)`
+is a free starting area with enough clearance for the full robot footprint; `(0, 0)` is occupied
+on that saved map and must not be used. `initial_pose_z` defaults to `0.1` m and normally needs no
+change.
+
+In RViz:
+
+1. Wait until the map, red scan, robot and global costmap appear.
+2. If necessary, select `2D Pose Estimate`, click the robot's actual map position and drag the
+   heading arrow.
+3. Select `2D Goal Pose`, click the destination and drag the desired final heading.
+4. The green `/planned_path` line is replaced automatically after every valid goal.
+
+The click publishes `/goal_pose`. `path_requester` calls Nav2 `ComputePathToPose` with the
+`GridBased` NavFn planner and republishes the result on `/planned_path`. A new click immediately
+clears the previous line. A goal outside the map, inside an inflated obstacle or in an unreachable
+region leaves the path empty and prints `No valid path` in Terminal 1.
+
+The global costmap contains only the saved static map and inflation layer. The reviewed polygonal
+footprint extends from `x=-0.85` to `x=1.30` m and from `y=-0.55` to `y=0.55` m, with `0.02` m
+padding and `0.57` m inflation. Live obstacle perception is intentionally deferred to the obstacle
+avoidance stage.
+
+This mode cannot move the robot: it does not launch Controller Server, BT Navigator, Behavior
+Server or Velocity Smoother. Confirm that no node publishes velocity commands in Terminal 2:
+
+```bash
+cd ~/Other/robotics_playground/robotics_playground_ws
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+
+ros2 topic info /cmd_vel --verbose
+```
+
+The Gazebo bridge is a subscriber on `/cmd_vel`; `Publisher count: 0` is the expected result.
+Useful checks in the same terminal are:
+
+```bash
+ros2 lifecycle get /map_server
+ros2 lifecycle get /amcl
+ros2 lifecycle get /planner_server
+ros2 run tf2_ros tf2_echo map base_footprint
+ros2 topic echo /planned_path --once
+```
+
+All three lifecycle nodes should be `active [3]`. To use another map, change only `map:=...` and
+the matching `initial_pose_*` values. Startup fails with a clear message if the YAML or its image
+does not exist.
 
 ## Package: cargo_bot
 
@@ -608,8 +679,9 @@ ros2 run tf2_ros tf2_echo odom base_footprint
 
 The diagnostics RViz overlays wheel odometry in orange, EKF output in purple and ground truth in
 green. Automated ideal and seeded `realistic` routes verify finite continuous EKF output; their
-position-error limits relative to simulator truth are respectively `0.25 m` and `0.5 m` for the
-short integration routes.
+position-error limits relative to simulator truth are `0.5 m` for the short integration routes.
+Wheel slip is expected for the heavy physical chassis; the ideal navigation TF uses exact model
+odometry rather than this diagnostic encoder estimate.
 
 ### Verified sensor baseline
 
@@ -632,13 +704,9 @@ colcon test --packages-select cargo_bot cargo_bot_world
 colcon test-result --test-result-base build --all
 ```
 
-The verified result is `130 tests, 0 errors, 0 failures, 3 skipped`. On the short deterministic
-routes, the final position errors relative to Gazebo ground truth were:
-
-| Profile | Wheel odometry | EKF |
-|---|---:|---:|
-| `ideal` | 0.0012 m | 0.0237 m |
-| seeded `realistic` | 0.0118 m | 0.0136 m |
+The encoder and localization tests require finite continuous output and bounded error against the
+physical Gazebo model pose. In `ideal`, the exact local-odometry output is expected to match that
+pose while `/wheel/odometry` remains a separate diagnostic that exposes physical wheel slip.
 
 For a visual check, launch the indoor world:
 

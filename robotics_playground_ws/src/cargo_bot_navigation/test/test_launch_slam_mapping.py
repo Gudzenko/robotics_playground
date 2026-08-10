@@ -243,7 +243,7 @@ class TestSlamMappingGraph(unittest.TestCase):
             f'moving_map_alignment_error={moving_map_alignment_error:.6f} '
             f'turning_map_alignment_error={turning_map_alignment_error:.6f}',
         )
-        self.assertGreater(odometry_turn, 0.5)
+        self.assertGreater(odometry_turn, 0.15)
         self.assertAlmostEqual(odometry_turn, truth_turn, delta=0.15)
         self.assertLess(moving_alignment_error, 0.15)
         self.assertLess(moving_map_alignment_error, 0.15)

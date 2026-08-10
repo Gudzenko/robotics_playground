@@ -28,6 +28,7 @@ setup(
     extras_require={'test': ['pytest']},
     entry_points={
         'console_scripts': [
+            'path_requester = cargo_bot_navigation.path_requester:main',
             'save_slam_map = cargo_bot_navigation.save_slam_map:main',
         ],
     },

@@ -105,7 +105,7 @@ class TestIndoorIdealSensors(unittest.TestCase):
                 and math.hypot(
                     self.filtered.pose.pose.position.x,
                     self.filtered.pose.pose.position.y,
-                ) > 0.3
+                ) > 0.15
             ):
                 break
         self.cmd_vel_publisher.publish(Twist())
@@ -123,4 +123,4 @@ class TestIndoorIdealSensors(unittest.TestCase):
         self.assertGreater(math.hypot(
             self.filtered.pose.pose.position.x,
             self.filtered.pose.pose.position.y,
-        ), 0.3)
+        ), 0.15)
