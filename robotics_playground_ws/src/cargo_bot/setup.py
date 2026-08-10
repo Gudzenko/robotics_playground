@@ -37,6 +37,7 @@ setup(
             'lidar_relay = cargo_bot.lidar_relay:main',
             'mock_sensor_publisher = cargo_bot.mock_sensor_publisher:main',
             'imu_relay = cargo_bot.imu_relay:main',
+            'ideal_odometry = cargo_bot.ideal_odometry:main',
             'odometry_path_publisher = cargo_bot.odometry_paths:main',
             'wheel_odometry = cargo_bot.wheel_odometry:main',
             'warehouse_scene_publisher = cargo_bot.warehouse_scene_publisher:main',

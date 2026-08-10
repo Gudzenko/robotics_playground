@@ -7,7 +7,7 @@ from launch.actions import (
     IncludeLaunchDescription,
     SetEnvironmentVariable,
 )
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     EqualsSubstitution,
@@ -83,11 +83,10 @@ def generate_launch_description():
         executable='parameter_bridge',
         arguments=[
             '/cmd_vel@geometry_msgs/msg/Twist]gz.msgs.Twist',
-            '/odom@nav_msgs/msg/Odometry[gz.msgs.Odometry',
+            '/ground_truth/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
             '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
         ],
         parameters=[{'use_sim_time': True}],
-        remappings=[('/odom', '/ground_truth/odometry')],
     )
 
     lidar_bridge = Node(
@@ -177,6 +176,14 @@ def generate_launch_description():
         output='screen',
         parameters=[ekf_config, {'use_sim_time': True}],
         remappings=[('odometry/filtered', '/odometry/filtered')],
+        condition=UnlessCondition(EqualsSubstitution(sensor_profile, 'ideal')),
+    )
+
+    ideal_odometry = Node(
+        package='cargo_bot',
+        executable='ideal_odometry',
+        parameters=[{'use_sim_time': True}],
+        condition=IfCondition(EqualsSubstitution(sensor_profile, 'ideal')),
     )
 
     rviz = Node(
@@ -243,6 +250,7 @@ def generate_launch_description():
         wheel_odometry,
         mock_sensor_publisher,
         ekf,
+        ideal_odometry,
         rviz,
         manipulator_control,
     ])

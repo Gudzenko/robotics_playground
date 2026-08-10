@@ -7,7 +7,7 @@ from launch.actions import (
     IncludeLaunchDescription,
     SetEnvironmentVariable,
 )
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     EqualsSubstitution,
@@ -28,6 +28,10 @@ def generate_launch_description():
     encoder_source = LaunchConfiguration('encoder_source')
     headless = LaunchConfiguration('headless')
     gz_partition = LaunchConfiguration('gz_partition')
+    spawn_x = LaunchConfiguration('spawn_x')
+    spawn_y = LaunchConfiguration('spawn_y')
+    spawn_z = LaunchConfiguration('spawn_z')
+    spawn_yaw = LaunchConfiguration('spawn_yaw')
 
     models_path = os.path.join(cargo_bot_world_share, 'models')
     world_file = os.path.join(cargo_bot_world_share, 'worlds', 'indoor_rooms.sdf')
@@ -61,17 +65,16 @@ def generate_launch_description():
         parameters=[{'robot_description': robot_description, 'use_sim_time': True}],
     )
 
-    # Robot spawns at the centre of Room A (x=0, y=0), facing north (+Y)
     spawn_robot = Node(
         package='ros_gz_sim',
         executable='create',
         arguments=[
             '-name',  'cargo_bot',
             '-string', robot_description,
-            '-x', '0.0',
-            '-y', '0.0',
-            '-z', '0.1',
-            '-Y', '1.5708',   # face north (+Y)
+            '-x', spawn_x,
+            '-y', spawn_y,
+            '-z', spawn_z,
+            '-Y', spawn_yaw,
         ],
     )
 
@@ -80,11 +83,10 @@ def generate_launch_description():
         executable='parameter_bridge',
         arguments=[
             '/cmd_vel@geometry_msgs/msg/Twist]gz.msgs.Twist',
-            '/odom@nav_msgs/msg/Odometry[gz.msgs.Odometry',
+            '/ground_truth/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
             '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
         ],
         parameters=[{'use_sim_time': True}],
-        remappings=[('/odom', '/ground_truth/odometry')],
     )
 
     lidar_bridge = Node(
@@ -174,6 +176,14 @@ def generate_launch_description():
         output='screen',
         parameters=[ekf_config, {'use_sim_time': True}],
         remappings=[('odometry/filtered', '/odometry/filtered')],
+        condition=UnlessCondition(EqualsSubstitution(sensor_profile, 'ideal')),
+    )
+
+    ideal_odometry = Node(
+        package='cargo_bot',
+        executable='ideal_odometry',
+        parameters=[{'use_sim_time': True}],
+        condition=IfCondition(EqualsSubstitution(sensor_profile, 'ideal')),
     )
 
     manipulator_control = Node(
@@ -213,6 +223,26 @@ def generate_launch_description():
             default_value='cargo_bot_indoor_rooms',
             description='Gazebo transport partition for launch isolation.',
         ),
+        DeclareLaunchArgument(
+            'spawn_x',
+            default_value='0.0',
+            description='Robot spawn X coordinate in the world.',
+        ),
+        DeclareLaunchArgument(
+            'spawn_y',
+            default_value='0.0',
+            description='Robot spawn Y coordinate in the world.',
+        ),
+        DeclareLaunchArgument(
+            'spawn_z',
+            default_value='0.1',
+            description='Robot spawn height in the world.',
+        ),
+        DeclareLaunchArgument(
+            'spawn_yaw',
+            default_value='1.5708',
+            description='Robot spawn yaw in radians; default faces north in room A.',
+        ),
         SetEnvironmentVariable('GZ_PARTITION', gz_partition),
         SetEnvironmentVariable('GZ_SIM_RESOURCE_PATH', models_path),
         gz_sim,
@@ -227,5 +257,6 @@ def generate_launch_description():
         wheel_odometry,
         mock_sensor_publisher,
         ekf,
+        ideal_odometry,
         manipulator_control,
     ])

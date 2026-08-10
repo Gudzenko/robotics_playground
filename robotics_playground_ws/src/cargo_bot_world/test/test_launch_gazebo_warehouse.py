@@ -226,7 +226,7 @@ class TestGazeboWarehouseLaunch(unittest.TestCase):
             timeout=10.0,
         )
         proc_output.assertWaitFor(
-            'Creating GZ->ROS Bridge: [/odom',
+            'Creating GZ->ROS Bridge: [/ground_truth/odometry',
             timeout=10.0,
         )
         proc_output.assertWaitFor(
@@ -255,7 +255,8 @@ class TestGazeboWarehouseLaunch(unittest.TestCase):
             timeout=10.0,
         )
         nodes = set(self.node.get_node_names())
-        self.assertIn('ekf_filter_node', nodes)
+        self.assertIn('ideal_odometry', nodes)
+        self.assertNotIn('ekf_filter_node', nodes)
         proc_info.assertWaitForShutdown(
             process='create',
             timeout=10.0,
@@ -359,8 +360,8 @@ class TestGazeboWarehouseLaunch(unittest.TestCase):
         self.assertEqual({info.node_name for info in wheel_publishers}, {'wheel_odometry'})
         self.assertIn('ros_gz_bridge', {info.node_name for info in truth_publishers})
 
-    def test_ekf_is_the_only_odom_to_base_tf_owner(self):
-        """Gazebo bridge must not compete with the EKF for local odometry TF."""
+    def test_ideal_odometry_is_the_only_odom_to_base_tf_owner(self):
+        """The ideal relay must own local TF without a Gazebo bridge conflict."""
         deadline = time.monotonic() + 10.0
         while not self.odom_base_transform_received and time.monotonic() < deadline:
             rclpy.spin_once(self.node, timeout_sec=0.1)
@@ -368,5 +369,6 @@ class TestGazeboWarehouseLaunch(unittest.TestCase):
         self.assertTrue(self.odom_base_transform_received)
         tf_publishers = self.node.get_publishers_info_by_topic('/tf')
         publisher_names = {info.node_name for info in tf_publishers}
-        self.assertIn('ekf_filter_node', publisher_names)
+        self.assertIn('ideal_odometry', publisher_names)
+        self.assertNotIn('ekf_filter_node', publisher_names)
         self.assertNotIn('ros_gz_bridge', publisher_names)

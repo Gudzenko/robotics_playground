@@ -102,7 +102,10 @@ class TestIndoorIdealSensors(unittest.TestCase):
                 and self.imu is not None
                 and self.wheel is not None
                 and self.filtered is not None
-                and self.filtered.pose.pose.position.x > 0.3
+                and math.hypot(
+                    self.filtered.pose.pose.position.x,
+                    self.filtered.pose.pose.position.y,
+                ) > 0.3
             ):
                 break
         self.cmd_vel_publisher.publish(Twist())
@@ -117,4 +120,7 @@ class TestIndoorIdealSensors(unittest.TestCase):
         self.assertEqual(self.imu.header.frame_id, 'imu_link')
         self.assertEqual(self.wheel.child_frame_id, 'base_footprint')
         self.assertEqual(self.filtered.header.frame_id, 'odom')
-        self.assertGreater(self.filtered.pose.pose.position.x, 0.3)
+        self.assertGreater(math.hypot(
+            self.filtered.pose.pose.position.x,
+            self.filtered.pose.pose.position.y,
+        ), 0.3)

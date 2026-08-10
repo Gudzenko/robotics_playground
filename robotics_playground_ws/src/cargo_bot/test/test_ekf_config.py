@@ -24,6 +24,7 @@ def test_ekf_is_planar_and_owns_local_odometry_tf():
     assert parameters['odom_frame'] == 'odom'
     assert parameters['base_link_frame'] == 'base_footprint'
     assert parameters['frequency'] == 50.0
+    assert parameters['transform_time_offset'] == 0.05
 
 
 def test_ekf_fuses_wheel_planar_pose_twist_and_only_imu_yaw_rate():
@@ -42,5 +43,8 @@ def test_ekf_fuses_wheel_planar_pose_twist_and_only_imu_yaw_rate():
 def test_gazebo_ground_truth_tf_is_not_the_public_tf_topic():
     xacro_source = WHEELS_XACRO_PATH.read_text(encoding='utf-8')
 
+    assert 'gz::sim::systems::OdometryPublisher' in xacro_source
+    assert '<odom_topic>/ground_truth/odometry</odom_topic>' in xacro_source
     assert '<tf_topic>/ground_truth/tf</tf_topic>' in xacro_source
+    assert '<odom_topic>/wheel_model/odometry</odom_topic>' in xacro_source
     assert '<tf_topic>/tf</tf_topic>' not in xacro_source

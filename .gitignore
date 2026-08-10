@@ -3,6 +3,9 @@ build/
 install/
 log/
 
+# Locally generated SLAM map artifacts
+robotics_playground_ws/saved_maps/
+
 # macOS
 .DS_Store
 

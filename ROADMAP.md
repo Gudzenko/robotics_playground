@@ -19,6 +19,7 @@ Current packages:
 | `cargo_bot` | Robot model, RViz scenes, kinematic drive and manipulator control |
 | `cargo_bot_interfaces` | Manipulator action, services and state message |
 | `cargo_bot_world` | Gazebo warehouse and multi-room environments |
+| `cargo_bot_navigation` | SLAM mapping and future Nav2 configuration |
 
 ## Current status
 
@@ -30,9 +31,10 @@ The project currently supports three levels of simulation:
 
 The robot can be driven manually through `/cmd_vel` in RViz and Gazebo. The manipulator action
 API controls joint-state visualization in RViz. A physical Gazebo controller for the manipulator,
-SLAM, global map localization and autonomous navigation are not implemented yet. Lidar, IMU,
-encoder odometry, deterministic noise/source substitution and EKF local odometry are implemented
-and form the verified navigation-sensor baseline.
+global map localization and autonomous navigation are not implemented yet. Live SLAM mapping is
+implemented, but the complete route and canonical indoor map still require manual review. Lidar,
+IMU, encoder odometry, deterministic noise/source substitution and EKF local odometry are
+implemented and form the verified navigation-sensor baseline.
 
 ## Completed
 
@@ -152,7 +154,7 @@ Current generated dimensions:
 
 ## Next milestones
 
-### 8. Project stabilization — next
+### 8. Project stabilization — complete
 
 Bring the existing implementation to a clean, reproducible baseline before adding navigation.
 
@@ -380,7 +382,7 @@ baseline, package and focused test runs, deterministic world generation, and man
 Expected stabilization result: the existing project has a reproducible green baseline before new
 robot capabilities are introduced.
 
-### 9. Navigation sensor foundation — next
+### 9. Navigation sensor foundation — complete
 
 Add the three sensor sources needed by the mobile navigation path: a 2D lidar, an IMU containing
 accelerometer and gyroscope measurements, and wheel encoders derived from simulated wheel joint
@@ -655,9 +657,11 @@ Acceptance criteria:
 - [x] Later SLAM and Nav2 launches can depend only on `/scan`, `/odometry/filtered` and TF
 
 Status: complete. A 50 Hz `robot_localization` EKF in `two_d_mode` fuses wheel `x`, `y`, `yaw`,
-forward velocity and yaw rate with IMU yaw rate, publishing `/odometry/filtered` and the sole ROS
-`odom -> base_footprint` transform. Gazebo DiffDrive TF moved to `/ground_truth/tf` and is no longer
-bridged to `/tf`, while `/ground_truth/odometry` remains available for comparison. Wheel messages
+forward velocity and yaw rate with IMU yaw rate for `realistic` and `harsh`. The later SLAM
+stabilization work added a profile-selected exact publisher for `ideal`; exactly one of it or the
+EKF publishes `/odometry/filtered` and `odom -> base_footprint`. Gazebo DiffDrive outputs moved to
+private `/wheel_model/*` topics, while a separate physical-pose OdometryPublisher supplies
+`/ground_truth/odometry` for ideal mapping and comparison. Wheel messages
 now carry explicit positive pose/twist covariance. Automated isolated Gazebo routes cover both
 ideal and seeded `realistic` profiles, verify finite continuous output, and bound wheel/filtered
 position error against simulator truth to `0.25 m`/`0.5 m` for the respective short routes. The
@@ -697,29 +701,320 @@ returns and the separate wheel, EKF and ground-truth paths. Public sensor interf
 so SLAM Toolbox can consume `/scan`, `/odometry/filtered` and the existing TF tree without changing
 the sensor-source architecture.
 
-### 10. SLAM and map creation
+### 10. SLAM and map creation — in progress
 
-- [ ] Add SLAM Toolbox runtime configuration
-- [ ] Run SLAM Toolbox in the indoor world
-- [ ] Verify the `map -> odom -> base_footprint` TF chain
-- [ ] Drive the complete circular route and inspect loop closure
-- [ ] Save and version the generated map
+Build and validate the indoor map through manual driving before introducing any autonomous
+planning or motion. SLAM Toolbox owns `map -> odom`. `ideal_odometry` owns
+`odom -> base_footprint` in the canonical `ideal` run; the EKF owns it in `realistic` and `harsh`.
 
-Expected result: the robot can build a consistent map while being driven manually.
+#### Agreed design decisions
 
-### 11. Nav2 autonomous navigation
+- Navigation configuration belongs to a new `cargo_bot_navigation` package.
+- The canonical map is built first with `sensor_profile:=ideal`.
+- `sensor_profile` remains a launch argument so `realistic` and `harsh` can be selected without
+  editing launch or configuration files.
+- Interactive mapping uses SLAM Toolbox `online_async` mode.
+- Both the occupancy map and the serialized SLAM Toolbox pose graph are retained.
+- Startup and interface contracts are automated; the complete route and initial map-quality
+  review remain manual.
+- Robot spawn pose, map name and map location are launch arguments with documented defaults, not
+  constants embedded in launch code.
 
-- [ ] Add Nav2 and SLAM Toolbox runtime dependencies
-- [ ] Configure robot footprint, velocity limits and costmaps
-- [ ] Configure localization against the saved map
-- [ ] Add a Nav2 bringup launch file for `indoor_rooms.sdf`
-- [ ] Send `NavigateToPose` goals from RViz
-- [ ] Verify navigation through doors and around furniture
-- [ ] Document startup and troubleshooting
+#### Target package and file structure
 
-Expected result: the robot autonomously reaches goals in the multi-room environment.
+```text
+robotics_playground_ws/src/cargo_bot_navigation/
+├── cargo_bot_navigation/
+│   ├── __init__.py
+│   ├── map_io.py
+│   └── save_slam_map.py
+├── config/
+│   └── slam_mapping.yaml
+├── launch/
+│   └── slam_mapping.launch.py
+├── maps/
+│   └── .gitkeep
+├── rviz/
+│   └── slam_mapping.rviz
+├── test/
+│   ├── test_slam_config.py
+│   ├── test_map_io.py
+│   ├── test_save_slam_map.py
+│   └── test_launch_slam_mapping.py
+├── package.xml
+├── resource/cargo_bot_navigation
+├── setup.cfg
+└── setup.py
+```
 
-### 12. Physical Gazebo manipulator control
+The `maps/` directory remains empty until step 10.3 produces reviewed map artifacts. The
+`save_slam_map` helper writes a standard occupancy map directly from `/map` and asks SLAM Toolbox
+to serialize the matching pose graph under the same safe base name.
+
+#### Mapping launch contract
+
+`slam_mapping.launch.py` will include the existing indoor-world launch instead of duplicating the
+Gazebo, robot, bridge, sensor and EKF nodes. Its initial public arguments will be:
+
+| Argument | Initial default | Purpose |
+|---|---:|---|
+| `spawn_x` | `0.0` | Robot start X position in the world |
+| `spawn_y` | `0.0` | Robot start Y position in the world |
+| `spawn_z` | `0.1` | Robot start height |
+| `spawn_yaw` | `1.5708` | Robot start heading, facing north in room A |
+| `sensor_profile` | `ideal` | Select `ideal`, `realistic` or `harsh` sensors |
+| `headless` | `false` | Start Gazebo without its GUI when true |
+| `use_rviz` | `true` | Start the mapping RViz view when true |
+| `pose_graph` | empty | Pose-graph base path for continued mapping |
+| `map_start_at_dock` | `false` | Match a loaded graph at its first node |
+
+The four spawn arguments must also be added to `cargo_bot_world/indoor_rooms.launch.py` and passed
+directly to `ros_gz_sim create`. Existing callers retain the current room-A pose through defaults.
+Step 10.3 adds a separate save interface with `map_name:=indoor_rooms` and a configurable writable
+`map_output_dir`; its default output is outside the installed package so experiments cannot
+silently overwrite the canonical committed map. Map-loading arguments are deliberately deferred
+to milestone 11 because milestone 10 builds a new map rather than localizing against an existing
+one.
+
+#### Required runtime graph
+
+```text
+/scan --------------------------> SLAM Toolbox ----------------> /map
+                                      |
+                                      └------------------------> map -> odom
+
+Gazebo physical pose -------------> ideal_odometry (ideal) ----> /odometry/filtered
+/wheel/odometry + /imu/data_raw --> EKF (realistic/harsh) -----> /odometry/filtered
+                                      └------------------------> odom -> base_footprint
+
+robot_state_publisher -----------------------------------------> base_footprint -> lidar_link
+```
+
+SLAM always consumes the stable `/odometry/filtered` and TF interfaces. In `ideal`, those are
+derived from the true physical Gazebo model pose so wheel slip cannot rotate the scan; in
+`realistic` and `harsh`, they come from the wheel/IMU EKF. Gazebo's private truth TF is never
+bridged directly onto ROS `/tf`.
+
+#### 10.1 Integrate SLAM Toolbox
+
+- [x] Scaffold `cargo_bot_navigation` as an Apache-2.0 `ament_python` package
+- [x] Declare direct runtime and test dependencies, including SLAM Toolbox
+- [x] Parameterize the indoor-world spawn pose without changing its current defaults
+- [x] Add and validate mapping configuration for `/scan`, `odom`, `base_footprint` and `map`
+- [x] Include SLAM Toolbox in `online_async` mode with `use_sim_time:=true`
+- [x] Add a mapping launch that includes the indoor world and forwards the agreed arguments
+- [x] Add an RViz scene for the occupancy map, scan, robot model and TF
+- [x] Verify `/map` and the complete `map -> odom -> base_footprint -> lidar_link` TF chain
+- [x] Add a repeatable headless startup and interface check
+
+Implementation order:
+
+1. Create the package skeleton, installation rules and manifest.
+2. Add spawn-pose arguments to the indoor launch and extend its existing tests to verify defaults
+   and at least one override.
+3. Add `slam_mapping.yaml` with only the parameters required for the existing lidar, odometry and
+   frames; keep tuning values explicit and documented.
+4. Add `slam_mapping.launch.py`, default it to `ideal`, and forward all world and sensor arguments
+   instead of copying the indoor launch implementation.
+5. Add the saved RViz mapping view while keeping `use_rviz:=false` suitable for automation.
+6. Add configuration tests and one headless launch test.
+7. Build all six packages, run the complete test suite, review the launch graph and document the
+   exact command used to start manual mapping.
+
+Automated checks for this step:
+
+- mapping YAML contains the agreed topic and frame contract;
+- invalid or incomplete project-owned configuration is rejected by focused tests;
+- the indoor launch preserves its current default pose and accepts overridden pose values;
+- the headless launch receives `/scan`, `/odometry/filtered` and a non-empty `/map`;
+- TF lookup succeeds from `map` through `odom` and `base_footprint` to `lidar_link`;
+- exactly one navigation-side component owns `map -> odom`, and exactly one profile-selected
+  component owns `odom -> base_footprint`;
+- all processes start and stop cleanly enough for the existing Jazzy launch-testing conventions.
+
+Acceptance criteria:
+
+- [x] All six packages build successfully
+- [ ] The full regression suite reports zero errors and zero failures
+- [x] `sensor_profile:=ideal` is the documented and tested default
+- [x] `sensor_profile:=realistic` can be selected without editing any file
+- [x] Spawn pose can be changed entirely through launch arguments
+- [x] The headless SLAM graph publishes `/map` and the required TF chain
+- [x] RViz is configured to display the live map and scan when enabled
+- [x] No autonomous planner, controller or `NavigateToPose` component is introduced
+
+Implementation status: the package, asynchronous mapping graph, parameterized spawn pose, saved
+RViz scene and automated map/TF contract are complete. RViz fixes LaserScan rendering in `map`.
+The ideal path now uses the Gazebo physical-pose OdometryPublisher rather than mislabeled DiffDrive
+wheel odometry, and disables unnecessary scan-matcher corrections. The motion test at 3 m/s
+measured 0.040324 m median consecutive-scan alignment error in both `odom` and `map`; the measured
+TF and physical Gazebo turn angles were identical. Hard braking can still pitch the physical
+chassis and lidar briefly, which is accepted for this stage. The focused mapping launch test saves
+a temporary occupancy map and pose graph and shuts down without leaving display processes. Latest
+focused results are clean: `cargo_bot` 121 tests, `cargo_bot_world` 6 tests and
+`cargo_bot_navigation` 21 tests, with zero errors and zero failures.
+
+The exact implementation scope and acceptance thresholds for this step will be agreed before work
+starts, following the same one-step-at-a-time rule used for stabilization and sensor development.
+
+#### 10.2 Build the complete indoor map manually
+
+- [ ] Start from a documented fixed pose in room A
+- [ ] Drive the A → B → D → corridor → E → C → A loop manually
+- [ ] Map the F and G dead ends and revisit shared areas from different directions
+- [ ] Inspect loop closure, wall alignment, doors and navigable free space
+- [ ] Record the sensor and TF inputs required for repeatable offline tuning
+
+Implementation and review sequence:
+
+1. Start with the default room-A pose and `sensor_profile:=ideal`.
+2. Record `/scan`, `/tf`, `/tf_static`, `/odometry/filtered` and `/clock` while mapping.
+3. Drive slowly through the circular route, then cover F and G. In `ideal`, avoid hard braking
+   because physical chassis pitch moves the lidar briefly; scan matching is intentionally off.
+4. Return to room A and inspect the loop closure before saving anything as canonical.
+5. Tune one documented parameter group at a time and replay the recorded inputs where practical.
+6. Repeat the accepted route with a fixed seeded `realistic` profile; this is a robustness check,
+   not the source of the canonical map.
+
+Map-quality review criteria:
+
+- [ ] Major walls form single aligned boundaries after loop closure
+- [ ] Door openings required by the route remain visibly open
+- [ ] Rooms A–G and the corridor are represented without disconnected map islands
+- [ ] The robot pose remains aligned with lidar returns in RViz
+- [ ] The realistic-profile run remains usable without changing public topics or SLAM config files
+
+#### 10.3 Save and validate the map
+
+- [x] Save the occupancy map (`.yaml` and `.pgm` image) as a candidate artifact
+- [x] Save the serialized SLAM Toolbox pose graph as a candidate artifact
+- [ ] Reload both outputs in a fresh run
+- [ ] Document the map resolution, origin, start pose and regeneration procedure
+- [ ] Establish repeatable ideal and seeded realistic-profile mapping checks
+
+Implementation order:
+
+1. Save the reviewed occupancy map under the selected `map_name` and `map_output_dir`.
+2. Serialize the corresponding SLAM Toolbox pose graph under the same base name.
+3. Check that all referenced files are inside the package and install through `setup.py`.
+4. Reload the occupancy map independently and verify its metadata and dimensions.
+5. Reload the pose graph in SLAM Toolbox and verify that mapping can continue.
+6. Add deterministic file-level checks for the map metadata and required artifacts.
+7. Document creation, overwrite policy, reload and alternative output-directory commands.
+
+Acceptance criteria:
+
+- [x] Saving never silently overwrites the canonical committed map
+- [ ] Occupancy-map YAML references a package-owned image with valid resolution and origin
+- [ ] The pose graph reloads with the reviewed map geometry intact
+- [x] `map_name` and `map_output_dir` work without editing launch or Python files
+- [x] Generated maps outside the package can be used for experiments without affecting the
+  canonical map
+
+Implementation status: the parameterized `save_slam_map` command, safe overwrite policy,
+portable PGM/YAML writer and pose-graph serialization are implemented and covered by unit and
+headless integration tests. The candidate `saved_maps/indoor_map` set contains a 694 × 418 PGM at
+0.05 m/cell plus matching YAML, posegraph and data files. `pose_graph` and `map_start_at_dock`
+launch arguments support continued mapping. This step remains open until the candidate is copied
+to the package as the reviewed canonical map and both occupancy-map loading and pose-graph
+continuation are verified in a fresh manual run.
+
+Expected result: the robot produces a consistent, reloadable indoor map through manual driving,
+without autonomous planning or motion.
+
+### 11. Localization and path calculation without motion
+
+Localize on the saved map and calculate collision-free global paths while keeping all autonomous
+velocity output disabled. Static walls and furniture are handled here because path calculation
+must already account for known obstacles.
+
+#### 11.1 Localize on the saved map
+
+- [ ] Add the map server and an AMCL configuration for the differential-drive robot
+- [ ] Set and reset the initial pose through RViz
+- [ ] Verify that localization is stable in multiple rooms and along the circular route
+- [ ] Compare the localized pose with `/ground_truth/odometry`
+- [ ] Ensure the localization system is the sole owner of `map -> odom`
+
+#### 11.2 Define footprint and global costmap
+
+- [ ] Define the Cargo Bot footprint from the robot geometry with a reviewed safety margin
+- [ ] Configure the static and inflation costmap layers
+- [ ] Verify clearance through doors, the corridor and furnished rooms
+- [ ] Visualize the footprint and global costmap in RViz
+
+#### 11.3 Calculate global paths
+
+- [ ] Start the Nav2 planner server without the controller or navigation command output
+- [ ] Calculate `ComputePathToPose` paths between representative room pairs
+- [ ] Verify paths do not cross inflated obstacles or leave known free space
+- [ ] Reject goals inside obstacles, outside the map and in unreachable areas
+- [ ] Add deterministic path-planning checks while the robot remains stationary
+
+Expected result: the robot is localized on the saved map and can calculate a valid global path to
+a requested goal without moving.
+
+### 12. Static-world trajectory execution
+
+Follow validated paths in the unchanged indoor world before introducing unexpected or moving
+obstacles.
+
+#### 12.1 Configure path following
+
+- [ ] Add and tune the controller server for the differential-drive base
+- [ ] Apply conservative linear, angular and acceleration limits
+- [ ] Configure progress, goal and path-following tolerances
+- [ ] Verify cancellation always stops the robot
+
+#### 12.2 Validate representative trajectories
+
+- [ ] Test straight motion, right-angle turns, arcs and final orientation
+- [ ] Test door, corridor and furnished-room traversal
+- [ ] Measure path-tracking error and check for oscillation near walls and goals
+- [ ] Verify clean stops and velocity-limit compliance
+
+#### 12.3 Add complete `NavigateToPose` behaviour
+
+- [ ] Add the BT Navigator and a minimal reviewed recovery set
+- [ ] Send goals from RViz and the ROS action interface
+- [ ] Navigate between every required room in the static world
+- [ ] Handle cancellation, invalid goals and unreachable goals explicitly
+- [ ] Document launch, operation and troubleshooting
+
+Expected result: the robot autonomously reaches goals on the saved map when the simulated world
+matches that map.
+
+### 13. Obstacle avoidance and navigation safety
+
+Add perception and response for obstacles that are absent from the saved map. Known static
+obstacles remain the responsibility of the global map and costmap from milestone 11.
+
+#### 13.1 Add live obstacle perception
+
+- [ ] Add a rolling local costmap with lidar obstacle marking and clearing
+- [ ] Verify that newly inserted obstacles appear and removed obstacles are cleared
+- [ ] Tune observation range, persistence and inflation for the robot footprint
+
+#### 13.2 Add avoidance and replanning
+
+- [ ] Avoid a newly inserted obstacle when local clearance exists
+- [ ] Request a new global path when the current route is blocked
+- [ ] Stop and report failure when no safe route exists
+- [ ] Resume or accept a new goal after the obstruction is removed
+- [ ] Test partial and complete blockage of doors and corridors
+
+#### 13.3 Add a collision-monitor safety layer
+
+- [ ] Add independent slowdown and stop zones around the robot
+- [ ] Route autonomous velocity commands through the collision monitor
+- [ ] Verify emergency stopping for a suddenly appearing close obstacle
+- [ ] Verify the robot body does not trigger false positive stops
+- [ ] Cover avoidance, replanning and safety stops with repeatable tests
+
+Expected result: the robot avoids unexpected obstacles when possible, replans when necessary and
+stops safely when no collision-free response exists.
+
+### 14. Physical Gazebo manipulator control
 
 Connect the existing manipulator action API to simulated joint actuators after the mobile robot
 navigation path is working.
@@ -743,7 +1038,7 @@ These items should follow a concrete navigation or manipulation use case:
 - [ ] Dynamic boxes or pallets that can be pushed
 - [ ] Gripper/object interaction and attachment logic
 - [ ] Camera or depth camera near the gripper
-- [ ] IMU and contact/bumper sensors
+- [ ] Contact/bumper sensors
 - [ ] Additional apartment-like environment if needed
 
 ## Current package structure
@@ -754,7 +1049,8 @@ robotics_playground_ws/src/
 ├── learning_interfaces/       # learning custom interfaces
 ├── cargo_bot/                 # robot, RViz and control nodes
 ├── cargo_bot_interfaces/      # manipulator custom interfaces
-└── cargo_bot_world/           # Gazebo worlds, models and world builder
+├── cargo_bot_world/           # Gazebo worlds, models and world builder
+└── cargo_bot_navigation/      # SLAM mapping and future Nav2 configuration
 ```
 
 The RViz-only and Gazebo drive modes intentionally share the `/cmd_vel` interface:
