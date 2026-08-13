@@ -1,13 +1,17 @@
 import os
 
 from ament_index_python.packages import get_package_share_directory
+from cargo_bot_world.process_cleanup import terminate_partition
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     IncludeLaunchDescription,
+    OpaqueFunction,
+    RegisterEventHandler,
     SetEnvironmentVariable,
 )
 from launch.conditions import IfCondition, UnlessCondition
+from launch.event_handlers import OnShutdown
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     EqualsSubstitution,
@@ -17,6 +21,12 @@ from launch.substitutions import (
 )
 from launch_ros.actions import Node
 import xacro
+
+
+def _cleanup_partition(context):
+    partition = LaunchConfiguration('gz_partition').perform(context)
+    terminate_partition(partition)
+    return []
 
 
 def generate_launch_description():
@@ -250,6 +260,11 @@ def generate_launch_description():
         ),
         SetEnvironmentVariable('GZ_PARTITION', gz_partition),
         SetEnvironmentVariable('GZ_SIM_RESOURCE_PATH', models_path),
+        RegisterEventHandler(
+            OnShutdown(
+                on_shutdown=[OpaqueFunction(function=_cleanup_partition)],
+            ),
+        ),
         gz_sim,
         robot_state_publisher,
         spawn_robot,

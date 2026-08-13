@@ -506,6 +506,9 @@ python3 src/cargo_bot_navigation/test/run_navigation_acceptance.py --repeat 3
 
 The runner executes the simulations sequentially and escalates shutdown from `SIGINT` to
 `SIGTERM` and finally `SIGKILL` only for a test process group that refuses to exit.
+The indoor-world launch also performs partition-scoped cleanup on every shutdown. If a launch
+test fails or is interrupted, only processes carrying that launch's exact `GZ_PARTITION` are
+stopped; unrelated Gazebo sessions are not matched.
 
 Terminal 2 cancels the current goal and requests a zero command:
 

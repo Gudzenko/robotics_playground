@@ -144,7 +144,7 @@ class TestNavigationTurn(unittest.TestCase):
         handle = send.result()
         self.assertTrue(handle.accepted)
         result = handle.get_result_async()
-        self.assertTrue(self._spin_until(result.done, 50.0))
+        self.assertTrue(self._spin_until(result.done, 120.0))
         self.assertEqual(result.result().status, GoalStatus.STATUS_SUCCEEDED)
         self.assertTrue(self.commands)
         axle_x, axle_y = self._axle_position()

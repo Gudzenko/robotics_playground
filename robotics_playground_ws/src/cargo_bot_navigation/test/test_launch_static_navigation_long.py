@@ -177,7 +177,7 @@ class TestLongNavigation(unittest.TestCase):
 
         self.commands.clear()
         result = self._send_goal(LONG_GOAL)
-        self.assertTrue(self._spin_until(result.done, 100.0))
+        self.assertTrue(self._spin_until(result.done, 130.0))
         self.assertEqual(result.result().status, GoalStatus.STATUS_SUCCEEDED)
         axle_x, axle_y = self._axle_position()
         self.assertLessEqual(

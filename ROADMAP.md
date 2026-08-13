@@ -1056,6 +1056,7 @@ obstacles.
 - [x] Verify ground-truth arrival, clean goal/cancellation stops and motion-limit compliance
 - [x] Check the complete rotated footprint against occupied map cells throughout the long route
 - [x] Run every automated navigation scenario three times in isolated simulations
+- [x] Clean up the exact Gazebo partition after successful, failed or interrupted launch tests
 
 #### 12.3 Add complete `NavigateToPose` behaviour
 
