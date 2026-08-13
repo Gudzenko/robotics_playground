@@ -11,6 +11,15 @@
 
     <link name="${geometry.frames.base_link}" />
 
+    <!-- Nav2 control point: midpoint of the differential-drive axle. The
+         physical model and saved map remain anchored at base_footprint. -->
+    <joint name="base_axle_joint" type="fixed">
+      <parent link="${geometry.frames.base_footprint}" />
+      <child link="${geometry.frames.base_axle}" />
+      <origin xyz="${geometry.drive_wheels.x} 0 0" rpy="0 0 0" />
+    </joint>
+    <link name="${geometry.frames.base_axle}" />
+
     <joint name="chassis_joint" type="fixed">
       <parent link="${geometry.frames.base_link}" />
       <child link="chassis_link" />
@@ -22,7 +31,9 @@
         mass="${geometry.chassis.mass}"
         length="${geometry.chassis.length}"
         width="${geometry.chassis.width}"
-        height="${geometry.chassis.height}" />
+        height="${geometry.chassis.height}"
+        origin_xyz="0 0 ${geometry.chassis.inertial_z}"
+        roll_pitch_multiplier="${geometry.chassis.roll_pitch_inertia_multiplier}" />
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>

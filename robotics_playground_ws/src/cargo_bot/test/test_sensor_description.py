@@ -55,6 +55,18 @@ def test_sensor_links_and_fixed_joints_are_in_robot_description(robot, geometry)
         assert joint.find('child').attrib['link'] == sensor['link']
 
 
+def test_navigation_axle_frame_matches_physical_drive_axis(robot, geometry):
+    """Nav2 control frame must coincide with the displaced wheel axis."""
+    links = _named_elements(robot, 'link')
+    joints = _named_elements(robot, 'joint')
+    assert geometry['frames']['base_axle'] in links
+    joint = joints['base_axle_joint']
+    assert joint.find('parent').attrib['link'] == geometry['frames']['base_footprint']
+    assert joint.find('child').attrib['link'] == geometry['frames']['base_axle']
+    xyz = [float(value) for value in joint.find('origin').attrib['xyz'].split()]
+    assert xyz == pytest.approx([geometry['drive_wheels']['x'], 0.0, 0.0])
+
+
 def test_sensor_joint_origins_match_shared_geometry(robot, geometry):
     """Xacro origins should use the values from the shared geometry file."""
     joints = _named_elements(robot, 'joint')
@@ -78,12 +90,12 @@ def test_lidar_is_low_and_inside_the_fixed_chassis_front(geometry):
     lidar_bottom = lidar['z'] - lidar['height'] / 2.0
 
     assert lidar['parent'] == geometry['frames']['base_link']
-    assert lidar['x'] == pytest.approx(0.79)
+    assert lidar['x'] == pytest.approx(0.395)
     assert lidar['y'] == pytest.approx(0.0)
-    assert scan_height == pytest.approx(0.3875)
+    assert scan_height == pytest.approx(0.19375)
     assert lidar_bottom == pytest.approx(chassis_top)
     assert lidar['x'] + lidar['radius'] < chassis_front
-    assert lidar['radius'] == pytest.approx(0.025)
+    assert lidar['radius'] == pytest.approx(0.0125)
 
 
 def test_navigation_sensor_interface_contract(sensor_config, geometry):
@@ -157,6 +169,23 @@ def test_gazebo_publishes_both_drive_wheel_joint_states(robot, geometry):
         geometry['drive_wheels']['left_joint'],
         geometry['drive_wheels']['right_joint'],
     ]
+
+
+def test_diff_drive_limits_linear_acceleration_not_top_speed(robot, geometry):
+    """Physical drive should suppress transition arcs without lowering 3 m/s."""
+    controller = geometry['drive_wheels']['controller']
+    plugin = robot.find(".//plugin[@name='gz::sim::systems::DiffDrive']")
+
+    assert float(plugin.findtext('max_linear_acceleration')) == 6.0
+    assert float(plugin.findtext('min_linear_acceleration')) == -20.0
+    assert float(plugin.findtext('max_angular_acceleration')) == 10.0
+    assert float(plugin.findtext('min_angular_acceleration')) == -15.0
+    assert controller == {
+        'max_linear_acceleration': 6.0,
+        'min_linear_acceleration': -20.0,
+        'max_angular_acceleration': 10.0,
+        'min_angular_acceleration': -15.0,
+    }
 
 
 @pytest.mark.parametrize('rviz_path', RVIZ_PATHS)

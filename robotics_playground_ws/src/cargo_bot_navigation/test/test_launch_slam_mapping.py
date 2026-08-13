@@ -19,7 +19,7 @@ from nav_msgs.msg import OccupancyGrid, Odometry
 import pytest
 import rclpy
 from rclpy.parameter import Parameter
-from sensor_msgs.msg import LaserScan
+from sensor_msgs.msg import Imu, LaserScan
 from tf2_ros import Buffer, TransformListener
 
 
@@ -61,6 +61,7 @@ class TestSlamMappingGraph(unittest.TestCase):
         cls.scan = None
         cls.odometry = None
         cls.ground_truth = None
+        cls.imu = None
         cls.subscriptions = [
             cls.node.create_subscription(
                 OccupancyGrid, '/map', cls._map_callback, 10,
@@ -76,6 +77,9 @@ class TestSlamMappingGraph(unittest.TestCase):
                 '/ground_truth/odometry',
                 cls._ground_truth_callback,
                 10,
+            ),
+            cls.node.create_subscription(
+                Imu, '/imu/data_raw', cls._imu_callback, 10,
             ),
         ]
         cls.tf_buffer = Buffer()
@@ -103,6 +107,10 @@ class TestSlamMappingGraph(unittest.TestCase):
     def _ground_truth_callback(cls, message):
         cls.ground_truth = message
 
+    @classmethod
+    def _imu_callback(cls, message):
+        cls.imu = message
+
     def test_slam_topics_and_tf_chain(self):
         """SLAM should produce a non-empty map connected to the lidar frame."""
         deadline = time.monotonic() + 35.0
@@ -117,7 +125,9 @@ class TestSlamMappingGraph(unittest.TestCase):
                 and self.scan is not None
                 and self.odometry is not None
                 and self.ground_truth is not None
+                and self.imu is not None
                 and transform_ready
+                and any(math.isfinite(value) for value in self.scan.ranges)
             ):
                 break
 
@@ -136,6 +146,7 @@ class TestSlamMappingGraph(unittest.TestCase):
         initial_truth_yaw = self._yaw(
             self.ground_truth.pose.pose.orientation,
         )
+        initial_pitch = self._pitch(self.imu.orientation)
 
         tf_history_deadline = time.monotonic() + 1.0
         while time.monotonic() < tf_history_deadline:
@@ -143,25 +154,26 @@ class TestSlamMappingGraph(unittest.TestCase):
 
         command = Twist()
         command.linear.x = 3.0
-        movement_deadline = time.monotonic() + 0.5
+        movement_deadline = time.monotonic() + 0.8
         moving_clouds = []
         moving_map_clouds = []
         last_scan_stamp = None
+        pitch_deltas = []
         while time.monotonic() < movement_deadline:
             self.cmd_vel_publisher.publish(command)
             rclpy.spin_once(self.node, timeout_sec=0.1)
+            pitch_deltas.append(abs(self._pitch(self.imu.orientation) - initial_pitch))
             if self.scan is not None:
                 scan_stamp = (
                     self.scan.header.stamp.sec,
                     self.scan.header.stamp.nanosec,
                 )
                 if scan_stamp != last_scan_stamp:
-                    moving_clouds.append(
-                        self._scan_points_in_frame(self.scan, 'odom'),
-                    )
-                    moving_map_clouds.append(
-                        self._scan_points_in_frame(self.scan, 'map'),
-                    )
+                    odom_cloud = self._scan_points_in_frame(self.scan, 'odom')
+                    map_cloud = self._scan_points_in_frame(self.scan, 'map')
+                    if odom_cloud and map_cloud:
+                        moving_clouds.append(odom_cloud)
+                        moving_map_clouds.append(map_cloud)
                     last_scan_stamp = scan_stamp
         self.cmd_vel_publisher.publish(Twist())
 
@@ -179,6 +191,7 @@ class TestSlamMappingGraph(unittest.TestCase):
         settle_deadline = time.monotonic() + 1.0
         while time.monotonic() < settle_deadline:
             rclpy.spin_once(self.node, timeout_sec=0.1)
+            pitch_deltas.append(abs(self._pitch(self.imu.orientation) - initial_pitch))
 
         before_scan = self.scan
         before_points = self._scan_points_in_frame(before_scan, 'map')
@@ -192,15 +205,16 @@ class TestSlamMappingGraph(unittest.TestCase):
         while time.monotonic() < turn_deadline:
             self.cmd_vel_publisher.publish(turn)
             rclpy.spin_once(self.node, timeout_sec=0.1)
+            pitch_deltas.append(abs(self._pitch(self.imu.orientation) - initial_pitch))
             if self.scan is not None:
                 scan_stamp = (
                     self.scan.header.stamp.sec,
                     self.scan.header.stamp.nanosec,
                 )
                 if scan_stamp != last_turn_scan_stamp:
-                    turning_map_clouds.append(
-                        self._scan_points_in_frame(self.scan, 'map'),
-                    )
+                    map_cloud = self._scan_points_in_frame(self.scan, 'map')
+                    if map_cloud:
+                        turning_map_clouds.append(map_cloud)
                     last_turn_scan_stamp = scan_stamp
         self.cmd_vel_publisher.publish(Twist())
 
@@ -241,13 +255,15 @@ class TestSlamMappingGraph(unittest.TestCase):
             f'odom_scan_alignment_error={odom_alignment_error:.6f} '
             f'moving_scan_alignment_error={moving_alignment_error:.6f} '
             f'moving_map_alignment_error={moving_map_alignment_error:.6f} '
-            f'turning_map_alignment_error={turning_map_alignment_error:.6f}',
+            f'turning_map_alignment_error={turning_map_alignment_error:.6f} '
+            f'max_pitch_delta={max(pitch_deltas):.6f}',
         )
         self.assertGreater(odometry_turn, 0.15)
         self.assertAlmostEqual(odometry_turn, truth_turn, delta=0.15)
         self.assertLess(moving_alignment_error, 0.15)
         self.assertLess(moving_map_alignment_error, 0.15)
         self.assertLess(turning_map_alignment_error, 0.15)
+        self.assertLess(max(pitch_deltas), 0.035)
         map_origin_yaw = self._yaw(self.map.info.origin.orientation)
         self.assertAlmostEqual(map_origin_yaw, 0.0, delta=1.0e-6)
 
@@ -293,6 +309,15 @@ class TestSlamMappingGraph(unittest.TestCase):
                 + quaternion.z * quaternion.z
             ),
         )
+
+    @staticmethod
+    def _pitch(quaternion):
+        """Return pitch from a geometry message quaternion."""
+        sine = 2.0 * (
+            quaternion.w * quaternion.y
+            - quaternion.z * quaternion.x
+        )
+        return math.asin(max(-1.0, min(1.0, sine)))
 
     @staticmethod
     def _angle_difference(current, initial):

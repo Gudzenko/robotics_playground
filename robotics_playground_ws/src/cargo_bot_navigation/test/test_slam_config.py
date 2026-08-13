@@ -38,10 +38,10 @@ def test_mapping_parameters_match_lidar_contract():
     assert parameters['min_laser_range'] == 0.15
     assert parameters['max_laser_range'] == 20.0
     assert parameters['resolution'] == 0.05
-    assert parameters['map_update_interval'] == 1.0
-    assert parameters['minimum_time_interval'] == 0.1
-    assert parameters['minimum_travel_distance'] == 0.15
-    assert parameters['minimum_travel_heading'] == 0.15
+    assert parameters['map_update_interval'] == 0.25
+    assert parameters['minimum_time_interval'] == 0.05
+    assert parameters['minimum_travel_distance'] == 0.05
+    assert parameters['minimum_travel_heading'] == 0.03
     assert parameters['transform_timeout'] == 0.5
     assert parameters['scan_queue_size'] == 10
 

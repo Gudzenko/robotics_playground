@@ -92,7 +92,7 @@ colcon test-result --verbose
 ```
 
 The latest focused results for the three packages changed by the mapping stage are: `cargo_bot`
-121 tests, `cargo_bot_world` 6 tests and `cargo_bot_navigation` 26 tests, with **0 errors and
+121 tests, `cargo_bot_world` 6 tests and `cargo_bot_navigation` 32 tests, with **0 errors and
 0 failures** (one copyright check skipped per package). All six packages build successfully; a
 new uninterrupted all-six-package regression run remains pending. The suite includes deterministic unit
 tests, package style checks, headless RViz and Gazebo launch tests, isolated warehouse tests for
@@ -114,6 +114,24 @@ python3 -m pytest -q src/cargo_bot/test/test_diff_drive_math.py
 Run package lint tests through `colcon test`, or start `pytest` from the package directory. Running
 an ament lint test directly from the workspace root can make it scan generated `build/` and
 `install/` files.
+
+### Mandatory process cleanup after simulation tests
+
+Every manual or automated Gazebo, RViz, SLAM or Nav2 diagnostic must finish by checking the host
+process table. Stopping the parent `ros2 launch`, `timeout` or test process is not sufficient:
+Gazebo servers can survive as orphaned children and continue consuming an entire CPU core each.
+
+After a run, first stop its launch terminal with `Ctrl+C` and wait for the shell prompt. Then check:
+
+```bash
+pgrep -a -f 'gz sim|gzserver|gzclient|rviz2|ros2 launch|slam_toolbox|planner_server|controller_server|bt_navigator|velocity_smoother'
+```
+
+No matching process from the completed run may remain. Resolve exact PIDs before sending signals;
+never use an unverified broad `pkill`. Stop confirmed project processes in the order `SIGINT`,
+`SIGTERM`, then `SIGKILL` only if the same process ignores both graceful signals. Re-run the process
+check after cleanup and report the result. This cleanup check is a required part of test completion,
+including tests launched by development assistants or scripts.
 
 After editing the parametric world builder, verify that regeneration is deterministic:
 
@@ -145,8 +163,12 @@ The navigation package provides both the SLAM mapping layer and localization/glo
 on a user-created map. Mapping starts the indoor Gazebo simulation, the ideal-by-default sensor
 stack and asynchronous SLAM Toolbox. In `ideal`,
 Gazebo's physical model pose is relayed directly as local odometry; `realistic` and `harsh` use the
-wheel/IMU EKF. Path planning starts Map Server, AMCL, a static global costmap and NavFn, but no
-controller or autonomous navigation component.
+wheel/IMU EKF. Path planning starts Map Server, AMCL, a static global costmap and footprint-aware
+Smac Hybrid-A*, but no
+controller or autonomous navigation component. In `ideal`, exact odometry is anchored by a fixed
+identity `map -> odom` transform and AMCL does not publish that transform; this prevents
+particle-filter corrections from slowly rotating or shifting the map. In `realistic` and `harsh`,
+AMCL owns `map -> odom` as usual.
 
 ### Build and start a new map
 
@@ -174,12 +196,23 @@ ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args \
 
 Build the canonical indoor map by covering the circular
 A → B → D → corridor → E → C → A route, then rooms F and G, and finally returning to A to inspect
-loop closure. The documented teleop limits are increased to 3.0 m/s linear and 1.0 rad/s angular.
-These are driving limits, not recommended mapping speeds: reduce them with `x` and `c` before
-doors and tight turns. In `ideal`, scan matching corrections are disabled because exact Gazebo
-odometry already fixes every scan in `map`; they remain enabled for `realistic` and `harsh`.
-Hard acceleration or braking can physically pitch the heavy chassis and lidar, causing a brief
-movement of the red scan. That physical suspension/contact behavior is accepted for this stage.
+loop closure. The documented teleop limits are 3.0 m/s linear and 1.0 rad/s angular. In `ideal`,
+scan matching corrections are disabled because exact Gazebo odometry already fixes every scan in
+`map`; they remain enabled for `realistic` and `harsh`. The robot dynamics are tuned to keep the
+lidar platform within 0.035 rad (about 2 degrees) of its initial pitch in the automated abrupt-stop
+check at this commanded speed.
+
+SLAM accepts a new scan after 0.03 rad (about 1.7 degrees) of rotation or 0.05 m of translation.
+The lidar itself remains at 15 Hz with 720 samples per revolution; the smaller pose thresholds
+increase mapping density without changing the physical sensor frequency. RViz receives a refreshed
+occupancy map every 0.25 seconds.
+
+`/sim/scan` remains the unmodified Gazebo scan for diagnostics. Before publishing `/scan`,
+`lidar_relay` removes endpoints inside the robot body and wheel masks, preventing self-returns from
+becoming short wall fragments. The masks and lidar origin are configured under
+`lidar.self_filter` in `cargo_bot/config/sensors.yaml`. When the robot geometry changes, update
+those boxes with the geometry; do not compensate by globally increasing the lidar minimum range,
+because that would hide real nearby obstacles.
 
 ### Change start pose and sensor profile
 
@@ -283,8 +316,13 @@ In RViz, verify:
 Run the automated package checks with:
 
 ```bash
-colcon test --packages-select cargo_bot_navigation
-colcon test-result --verbose
+cd ~/Other/robotics_playground/robotics_playground_ws
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+cd src/cargo_bot_navigation
+
+python3 -m pytest test/test_flake8.py test/test_pep257.py \
+  test/test_static_navigation_config.py test/test_path_planning_config.py -q
 ```
 
 The launch test starts the ideal indoor world headlessly, moves a short distance, verifies the
@@ -305,34 +343,46 @@ source install/setup.bash
 
 ros2 launch cargo_bot_navigation path_planning.launch.py \
   map:="$PWD/saved_maps/indoor_map.yaml" \
-  initial_pose_x:=-2.0 \
-  initial_pose_y:=-3.0 \
-  initial_pose_yaw:=0.0
+  initial_pose_x:=0.0 \
+  initial_pose_y:=0.0 \
+  initial_pose_yaw:=1.5708
 ```
 
-The initial-pose arguments set both the physical Gazebo spawn and AMCL's initial estimate. They
-must use the coordinates in which the map was created. For the checked `indoor_map`, `(-2, -3)`
-is a free starting area with enough clearance for the full robot footprint; `(0, 0)` is occupied
-on that saved map and must not be used. `initial_pose_z` defaults to `0.1` m and normally needs no
-change.
+The initial-pose arguments set both the physical Gazebo spawn and AMCL's initial estimate. In the
+default `ideal` profile, use the same initial coordinates and heading with which the map was
+created so its fixed map/odometry alignment remains exact. For the rebuilt `indoor_map`,
+`(0.0, 0.0, 1.5708)` is the original mapping start and has about 3.14 m to the nearest non-free
+cell. The former `(-2.0, -1.0)` start has only about 1.03 m and is unsafe for an in-place turn of
+the full robot. `initial_pose_z` defaults to `0.1` m and normally needs no change.
 
 In RViz:
 
 1. Wait until the map, red scan, robot and global costmap appear.
-2. If necessary, select `2D Pose Estimate`, click the robot's actual map position and drag the
-   heading arrow.
+2. With `realistic` or `harsh`, use `2D Pose Estimate` if AMCL needs correction. With `ideal`,
+   restart the launch with the correct `initial_pose_*` arguments instead; its fixed exact TF
+   deliberately ignores particle-filter corrections.
 3. Select `2D Goal Pose`, click the destination and drag the desired final heading.
 4. The green `/planned_path` line is replaced automatically after every valid goal.
 
 The click publishes `/goal_pose`. `path_requester` calls Nav2 `ComputePathToPose` with the
-`GridBased` NavFn planner and republishes the result on `/planned_path`. A new click immediately
+`GridBased` Smac Hybrid-A* planner and republishes the result on `/planned_path`. Unlike the former
+NavFn setup, Smac checks the full polygon footprint at each planned orientation, so a valid path
+cannot place the long front corner of the robot inside a wall. A new click immediately
 clears the previous line. A goal outside the map, inside an inflated obstacle or in an unreachable
 region leaves the path empty and prints `No valid path` in Terminal 1.
 
 The global costmap contains only the saved static map and inflation layer. The reviewed polygonal
 footprint extends from `x=-0.85` to `x=1.30` m and from `y=-0.55` to `y=0.55` m, with `0.02` m
-padding and `0.57` m inflation. Live obstacle perception is intentionally deferred to the obstacle
-avoidance stage.
+padding. The global inflation radius is `1.45 m`, just above the footprint's computed `1.438 m`
+circumscribed radius required by Smac, with a relatively fast `3.5` cost decay. This radius enables
+correct optimized polygon collision checks; it is not a uniformly lethal 1.45 m exclusion zone.
+The local and global costmaps use the same `1.45 m` technical inflation with fast `3.5` decay,
+allowing optimized full-footprint checks without making that entire radius lethal. The planner
+uses forward-only Dubins motion
+with a `0.8 m` minimum turning radius; if a near-wall goal
+does not leave enough room for the complete footprint and final heading, it is rejected before the
+robot moves instead of allowing the chassis to become physically stuck. Live obstacle perception is
+intentionally deferred to the obstacle-avoidance stage.
 
 This mode cannot move the robot: it does not launch Controller Server, BT Navigator, Behavior
 Server or Velocity Smoother. Confirm that no node publishes velocity commands in Terminal 2:
@@ -359,6 +409,126 @@ ros2 topic echo /planned_path --once
 All three lifecycle nodes should be `active [3]`. To use another map, change only `map:=...` and
 the matching `initial_pose_*` values. Startup fails with a clear message if the YAML or its image
 does not exist.
+
+### Follow the path in the unchanged static world
+
+Stop the path-planning launch first. Terminal 1 starts the complete static navigation stack:
+
+```bash
+cd ~/Other/robotics_playground/robotics_playground_ws
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+
+ros2 launch cargo_bot_navigation static_navigation.launch.py \
+  map:="$PWD/saved_maps/indoor_map.yaml" \
+  initial_pose_x:=0.0 \
+  initial_pose_y:=0.0 \
+  initial_pose_yaw:=1.5708
+```
+
+Wait until the map, robot and both costmaps appear. `2D Goal Pose` now starts a real
+`NavigateToPose` action: the green `/plan` is calculated and the robot follows it. The manipulator
+home orientation points 180 degrees behind the robot from initial spawn. A second goal replaces
+the active Nav2 goal. The arrow direction is intentionally treated as a hint only: the planner
+chooses a safe arrival orientation and completion depends on the selected point.
+
+For the rebuilt `saved_maps/indoor_map.yaml`, `(0.0, 0.0, 1.5708)` is the verified safe start with
+about 3.14 m of measured clearance. For another map, choose `initial_pose_*` so the complete
+1.08 by 0.66 metre footprint—not only its center point—lies on white free cells.
+
+The navigation footprint is the ground-contact envelope of the chassis and outer wheel edges,
+expressed about `base_axle` (`x=-0.585..0.49 m`, `y=-0.33..0.33 m`). Elevated manipulator links are deliberately excluded from
+the planar costmap, so the robot is not surrounded by a fictitious rear exclusion area. Smac uses
+`REEDS_SHEPP`, so a constrained turn may
+contain a short reverse segment instead of forcing an impossible forward-only arc.
+The local costmap uses a compact `0.75 m` inflation band with `4.0` decay so corridor and doorway
+exits remain usable; hard full-footprint collision validation remains independent of this soft
+cost band. The global radius remains `1.49 m` to cover the complete circumscribed footprint, but
+its `4.0` decay makes the outer band less expensive. Smac planning time is limited to `8.0 s`, and
+RPP collision projection is limited to `0.40 s` so distant projected arcs do not cause premature
+stops.
+
+The static-navigation mode uses Regulated Pure Pursuit with collision checking, a static rolling
+local costmap and a translation-based progress checker. `PositionGoalChecker` completes navigation when
+the robot comes within `0.30 m` of the requested position; final yaw is deliberately ignored so
+the large chassis stops instead of circling the point to match the RViz arrow.
+Smac uses `ALL_DIRECTION` arrival headings instead of building a terminal loop for that arrow.
+Because this stage uses an unchanged static world, its behavior tree retains a valid global path
+and replans only when the goal changes or the current path becomes invalid—not every second during
+the final approach.
+If following fails, recovery always returns through `ComputePathToPose` before another
+`FollowPath`; an empty cleared path is never sent to the controller. Recovery may clear costmaps,
+wait or back up slowly, but never performs a blind in-place spin near a wall.
+The plan/follow branch uses a memory sequence: while `FollowPath` is running, the already computed
+path is retained and the planner is not called again on every 20 Hz controller tick.
+Progress requires at least `0.20 m` of translation within 10 seconds. Rotation and rocking no
+longer hide a chassis that is stuck in a doorway; Nav2 enters recovery and replans instead.
+Velocity Smoother limits output to `3.0 m/s` linear and `1.0 rad/s` angular, while RPP currently
+requests a stable nominal `2.0 m/s`. Its speed-scaled lookahead spans `0.40..0.80 m`; curvature
+scaling preserves speed on straights and slows smoothly on turns. Smoother limits are `1.8 m/s²`
+linear and `2.5 rad/s²` angular acceleration, with `2.5 m/s²` and `3.0 rad/s²` deceleration.
+On the measured 7.8 m upper-corridor straight this reduced maximum path error from 0.106 m to
+0.069 m, mean error from 0.055 m to 0.027 m, and path-axis crossings from 8 to 0. A corridor-exit
+route with a turn completed with 0.159 m peak and 0.064 m mean error; the peak is localized at
+the corner while the straight remains within the requested 0.10 m tolerance.
+Safety is retained by the globally inflated Smac path and hard full-footprint trajectory collision validation. Path
+following is weighted strongly enough to keep useful forward motion through valid passages.
+A velocity-deadband critic penalizes ineffective commands below `0.12 m/s` linear or
+`0.08 rad/s` angular without weakening collision validation.
+The local costmap deliberately has no live lidar obstacle layer yet: unexpected
+obstacles are handled in the next obstacle-avoidance milestone.
+
+The launch tests exercise the real Gazebo model and saved map. The straight-corridor test checks
+ground-truth goal completion, at most 0.10 m peak and 0.05 m mean lateral error, no repeated
+centerline crossings, configured velocity and acceleration limits, a clean goal stop, and a
+confirmed canceled action. The turn test checks ground-truth travel through a corridor exit into
+a neighbouring room, velocity limits, successful action completion, and a clean final stop. A
+third test drives more than 12 m from the initial room into the far-left room, verifies the
+ground-truth destination and checks the complete rotated footprint against occupied map cells at
+every odometry update. It then confirms that a goal outside the map is aborted without moving the
+robot more than 0.05 m. The
+acceptance runner gives each test a separate ROS domain and process group and always stops that
+group after success, failure, or timeout:
+
+```bash
+cd ~/Other/robotics_playground/robotics_playground_ws
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+
+python3 src/cargo_bot_navigation/test/run_navigation_acceptance.py
+```
+
+For a stability check, repeat every scenario three times:
+
+```bash
+python3 src/cargo_bot_navigation/test/run_navigation_acceptance.py --repeat 3
+```
+
+The runner executes the simulations sequentially and escalates shutdown from `SIGINT` to
+`SIGTERM` and finally `SIGKILL` only for a test process group that refuses to exit.
+
+Terminal 2 cancels the current goal and requests a zero command:
+
+```bash
+cd ~/Other/robotics_playground/robotics_playground_ws
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+
+ros2 service call /cancel_navigation std_srvs/srv/Trigger {}
+ros2 topic echo /cmd_vel --once
+```
+
+After cancellation, all six Twist components should be zero. Useful lifecycle checks are:
+
+```bash
+ros2 lifecycle get /controller_server
+ros2 lifecycle get /behavior_server
+ros2 lifecycle get /bt_navigator
+ros2 lifecycle get /velocity_smoother
+```
+
+Each node should report `active [3]`. The automated launch test sends a goal, verifies physical
+Gazebo motion and velocity limits, cancels navigation and confirms the final stop command.
 
 ## Package: cargo_bot
 
@@ -506,7 +676,7 @@ Gazebo publishes only the configured left and right drive-wheel positions on
 where they coexist with the manipulator joint states used by `robot_state_publisher`. It converts
 each continuous wheel angle to a signed
 integer count at 2048 ticks per revolution, then integrates differential-drive motion using the
-shared wheel radius (`0.23 m`) and separation (`1.16 m`). Its navigation-facing output is
+shared wheel radius (`0.115 m`) and separation (`0.58 m`). Its navigation-facing output is
 `nav_msgs/msg/Odometry` on `/wheel/odometry`, with frame `odom` and child frame
 `base_footprint`.
 
@@ -772,11 +942,39 @@ The robot model includes simple collision and inertial data used by the current 
 
 Current assumptions:
 
+- The complete robot geometry is currently scaled to 50% of the original model for indoor Nav2
+  validation. All link dimensions, offsets, wheel geometry, sensor placement, collision geometry
+  and manipulator linear travel use the same `0.5` scale; the world and saved map are unchanged.
+- Masses use the corresponding constant-density scale `0.5³ = 0.125`. Inertia is generated from
+  the scaled mass and geometry, so it is approximately `0.5⁵ = 0.03125` of the former value.
+
 - Collision geometry follows the visible robot shape closely, but uses simple primitives: boxes, cylinders, and a sphere for the rear support caster.
 - Collision geometry is intentionally simpler than the visual model so physics stays easier to debug.
 - Approximate masses are stored in `config/cargo_bot_geometry.yaml` next to the corresponding geometry values.
 - Inertia formulas are centralized in `urdf/cargo_bot_inertial.xacro`.
-- Current masses and inertia values are first-pass estimates, not final engineering values.
+- The current model uses a deliberately near-ideal navigation-validation profile. After scaling,
+  the chassis is 15 kg, the cargo deck is 1.25 kg, each drive wheel is 1 kg, and the complete
+  manipulator is about 1.31 kg. These are simulation parameters for validating Nav2, not final
+  engineering estimates.
+- The chassis inertial origin is 0.06 m below its geometric centre. The drive-wheel axis is at
+  `x=0.16 m`, below the manipulator-side part of the chassis, while the passive ball is behind it
+  at `x=-0.31 m`. This preserves the original proportions at half scale.
+- `base_axle` is a fixed frame at that wheel midpoint and is the control frame for AMCL, Nav2 and
+  both navigation costmaps. The physical model and saved map stay anchored at `base_footprint`.
+  Accordingly, the navigation footprint is expressed about the axle as
+  `x=-0.585..0.49 m`, `y=-0.33..0.33 m`.
+- These physical parameters apply to `ideal`, `realistic` and `harsh`; they do not hide chassis
+  pitch in TF or sensor processing and do not reduce the 3.0 m/s and 1.0 rad/s teleoperation limits.
+- The Gazebo differential drive permits 6.0 m/s² forward acceleration and 20.0 m/s² braking;
+  angular acceleration and braking are 10.0 and 15.0 rad/s². The rear ball support uses very low
+  contact friction so it does not act as a third rubber brake during differential turns.
+- The integration test commands abrupt 3.0 m/s forward motion, stop and 1.0 rad/s rotation, checks
+  physical movement and requires the IMU pitch deviation to stay below 0.035 rad.
+- Before restoring the forward axle position, a flat-world acceptance run measured zero
+  lateral/heading drift on a straight, 0.189 m stop drift and 0.244 m closure error after a
+  left/right figure eight. Before the later 50% scale change, the axle was returned to `x=0.32 m`
+  to improve pitch stability;
+  translation of `base_link` during an in-place turn is therefore expected geometry, not skid.
 - The `warehouse_in_rviz.launch.py` scene remains visual only. The environments in
   `cargo_bot_world` provide physical collision geometry.
 
@@ -978,8 +1176,8 @@ It is active only when the robot is spawned in Gazebo — it has no effect in RV
 |---|---|---|
 | `left_joint` | `left_wheel_joint` | `cargo_bot_geometry.yaml` |
 | `right_joint` | `right_wheel_joint` | `cargo_bot_geometry.yaml` |
-| `wheel_separation` | `2 × drive_wheels.y_offset` = 1.16 m | `cargo_bot_geometry.yaml` |
-| `wheel_radius` | `drive_wheels.radius` = 0.23 m | `cargo_bot_geometry.yaml` |
+| `wheel_separation` | `2 × drive_wheels.y_offset` = 0.58 m | `cargo_bot_geometry.yaml` |
+| `wheel_radius` | `drive_wheels.radius` = 0.115 m | `cargo_bot_geometry.yaml` |
 | `topic` | `/cmd_vel` | — |
 | `odom_topic` | `/odom` | — |
 | `frame_id` | `odom` | — |

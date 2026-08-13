@@ -28,8 +28,8 @@ def test_project_encoder_contract_reuses_shared_geometry():
     assert config['left_joint'] == 'left_wheel_joint'
     assert config['right_joint'] == 'right_wheel_joint'
     assert config['ticks_per_revolution'] == 2048
-    assert config['wheel_radius'] == pytest.approx(0.23)
-    assert config['wheel_separation'] == pytest.approx(1.16)
+    assert config['wheel_radius'] == pytest.approx(0.115)
+    assert config['wheel_separation'] == pytest.approx(0.58)
 
 
 def test_odometry_covariance_expands_to_ros_6x6_matrix():
@@ -124,7 +124,7 @@ def test_non_monotonic_sample_does_not_corrupt_integrator_state():
 
     assert estimate is not None
     expected_ticks = angle_to_ticks(0.2, config['ticks_per_revolution'])
-    expected_distance = expected_ticks * 2.0 * math.pi * 0.23 / 2048
+    expected_distance = expected_ticks * 2.0 * math.pi * 0.115 / 2048
     assert estimate.x == pytest.approx(expected_distance)
 
 
@@ -140,5 +140,5 @@ def test_update_rate_limits_output_without_losing_ticks():
     estimate = integrator.update(complete, 1.02)
 
     expected_ticks = angle_to_ticks(0.2, config['ticks_per_revolution'])
-    expected_distance = expected_ticks * 2.0 * math.pi * 0.23 / 2048
+    expected_distance = expected_ticks * 2.0 * math.pi * 0.115 / 2048
     assert estimate.x == pytest.approx(expected_distance)

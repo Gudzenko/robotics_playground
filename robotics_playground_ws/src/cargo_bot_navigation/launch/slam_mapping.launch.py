@@ -181,7 +181,10 @@ def generate_launch_description():
         ),
         indoor_world,
         slam,
-        configure_slam,
         activate_slam,
+        # Register the inactive-state handler before requesting configure.
+        # Otherwise a fast transition can finish before the handler exists,
+        # leaving slam_toolbox inactive and the /map topic unpublished.
+        configure_slam,
         rviz,
     ])

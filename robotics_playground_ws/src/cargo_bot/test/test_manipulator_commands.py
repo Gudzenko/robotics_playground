@@ -11,8 +11,8 @@ import pytest
 
 
 ELEMENT_LIMITS = {
-    ELEMENT_ARM: {'lower': 0.0, 'upper': 0.35},
-    ELEMENT_LIFT: {'lower': -0.78, 'upper': 0.78},
+    ELEMENT_ARM: {'lower': 0.0, 'upper': 0.175},
+    ELEMENT_LIFT: {'lower': -0.39, 'upper': 0.39},
 }
 
 
@@ -36,7 +36,7 @@ def test_interpolate_position_supports_descending_motion():
     assert interpolate_position(1.0, -1.0, 0.75) == pytest.approx(-0.5)
 
 
-@pytest.mark.parametrize('position', [-0.78, 0.0, 0.78])
+@pytest.mark.parametrize('position', [-0.39, 0.0, 0.39])
 def test_validate_move_command_accepts_limits_and_zero_duration(position):
     """Limit boundaries and an immediate command should be valid."""
     assert validate_move_command(
@@ -94,7 +94,7 @@ def test_validate_move_command_enforces_position_limits(position):
     """Positions outside the configured closed interval should be rejected."""
     error = validate_move_command(ELEMENT_ARM, position, 1.0, ELEMENT_LIMITS)
 
-    assert error == "position for element 'arm' must be between 0.0 and 0.35"
+    assert error == "position for element 'arm' must be between 0.0 and 0.175"
 
 
 @pytest.mark.parametrize('duration_sec', [math.nan, math.inf, -math.inf])

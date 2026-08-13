@@ -15,6 +15,8 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (join('share', package_name, 'config'), glob('config/*.yaml')),
+        (join('share', package_name, 'behavior_trees'),
+            glob('behavior_trees/*.xml')),
         (join('share', package_name, 'launch'), glob('launch/*.launch.py')),
         (join('share', package_name, 'maps'), glob('maps/*')),
         (join('share', package_name, 'rviz'), glob('rviz/*.rviz')),
@@ -29,6 +31,7 @@ setup(
     entry_points={
         'console_scripts': [
             'path_requester = cargo_bot_navigation.path_requester:main',
+            'goal_navigator = cargo_bot_navigation.goal_navigator:main',
             'save_slam_map = cargo_bot_navigation.save_slam_map:main',
         ],
     },

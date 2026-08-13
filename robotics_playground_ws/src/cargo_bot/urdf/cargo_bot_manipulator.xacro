@@ -4,7 +4,8 @@
     <joint name="${geometry.manipulator.mount.joint}" type="revolute">
       <parent link="${geometry.frames.base_link}" />
       <child link="${geometry.manipulator.mount.link}" />
-      <origin xyz="${geometry.manipulator.mount.x} ${geometry.manipulator.mount.y} ${geometry.manipulator.mount.z}" rpy="0 0 0" />
+      <!-- The safe transport/home pose points the complete manipulator behind the base. -->
+      <origin xyz="${geometry.manipulator.mount.x} ${geometry.manipulator.mount.y} ${geometry.manipulator.mount.z}" rpy="0 0 3.14159265359" />
       <axis xyz="0 0 1" />
       <limit lower="${geometry.manipulator.mount.lower}" upper="${geometry.manipulator.mount.upper}" effort="${geometry.manipulator.mount.effort}" velocity="${geometry.manipulator.mount.velocity}" />
       <dynamics damping="500" friction="100"/>

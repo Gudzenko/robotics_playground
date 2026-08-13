@@ -1,176 +1,184 @@
 frames:
   base_footprint: base_footprint
   base_link: base_link
+  base_axle: base_axle
 
 sensors:
   lidar:
     link: lidar_link
     joint: lidar_joint
     parent: base_link
-    x: 0.79
+    x: 0.395
     y: 0.0
-    z: 0.1575
+    z: 0.07875
     roll: 0.0
     pitch: 0.0
     yaw: 0.0
-    radius: 0.025
-    height: 0.035
-    mass: 0.2
+    radius: 0.0125
+    height: 0.0175
+    mass: 0.025
   imu:
     link: imu_link
     joint: imu_joint
     parent: base_link
     x: 0.0
     y: 0.0
-    z: 0.06
+    z: 0.03
     roll: 0.0
     pitch: 0.0
     yaw: 0.0
-    length: 0.08
-    width: 0.06
-    height: 0.025
-    mass: 0.1
+    length: 0.04
+    width: 0.03
+    height: 0.0125
+    mass: 0.0125
 
 base:
-  base_link_z: 0.23
+  base_link_z: 0.115
 
 chassis:
-  length: 1.65
-  width: 1.0
-  height: 0.28
-  mass: 650.0
+  length: 0.825
+  width: 0.5
+  height: 0.14
+  mass: 15.0
+  inertial_z: -0.06
+  roll_pitch_inertia_multiplier: 1.0
 
 cargo_deck:
-  x: -0.33
+  x: -0.165
   y: 0.0
-  z: 0.165
-  length: 0.92
-  width: 0.82
-  height: 0.05
-  mass: 120.0
+  z: 0.0825
+  length: 0.46
+  width: 0.41
+  height: 0.025
+  mass: 1.25
 
 drive_wheels:
-  radius: 0.23
-  width: 0.14
-  mass: 45.0
-  x: 0.32
-  y_offset: 0.58
+  radius: 0.115
+  width: 0.07
+  mass: 1.0
+  x: 0.16
+  y_offset: 0.29
   z: 0.0
-  hub_radius: 0.12
-  hub_width: 0.02
-  hub_y_offset: 0.081
+  hub_radius: 0.06
+  hub_width: 0.01
+  hub_y_offset: 0.0405
   left_joint: left_wheel_joint
   right_joint: right_wheel_joint
   left_link: left_wheel_link
   right_link: right_wheel_link
+  controller:
+    max_linear_acceleration: 6.0
+    min_linear_acceleration: -20.0
+    max_angular_acceleration: 10.0
+    min_angular_acceleration: -15.0
 
 rear_support:
-  x: -0.62
+  x: -0.31
   y: 0.0
-  z: -0.145
-  radius: 0.085
-  mass: 8.0
+  z: -0.0725
+  radius: 0.0425
+  mass: 0.125
   joint: rear_support_wheel_joint
   link: rear_support_wheel_link
 
 manipulator:
   mount:
-    x: 0.52
+    x: 0.26
     y: 0.0
-    z: 0.19
+    z: 0.095
     lower: -3.14159
     upper: 3.14159
     effort: 500.0
     velocity: 0.8
-    radius: 0.24
-    height: 0.1
-    mass: 70.0
+    radius: 0.12
+    height: 0.05
+    mass: 0.3125
     link: manipulator_mount_link
     joint: manipulator_mount_joint
   column:
-    z: 0.95
-    length: 0.16
-    width: 0.14
-    height: 1.8
-    mass: 110.0
+    z: 0.475
+    length: 0.08
+    width: 0.07
+    height: 0.9
+    mass: 0.375
     link: manipulator_column_link
     joint: manipulator_column_joint
   lift:
     z: 0.0
-    lower: -0.78
-    upper: 0.78
+    lower: -0.39
+    upper: 0.39
     effort: 2000.0
     velocity: 0.3
-    length: 0.18
-    width: 0.44
-    height: 0.16
-    mass: 45.0
+    length: 0.09
+    width: 0.22
+    height: 0.08
+    mass: 0.1875
     link: manipulator_lift_link
     joint: manipulator_lift_joint
   arm:
     housing:
-      x: 0.09
+      x: 0.045
       y: 0.0
       z: 0.0
-      length: 0.55
-      width: 0.18
-      height: 0.12
-      mass: 35.0
+      length: 0.275
+      width: 0.09
+      height: 0.06
+      mass: 0.125
       link: manipulator_arm_housing_link
       joint: manipulator_arm_housing_joint
     extension:
-      x: 0.12
+      x: 0.06
       y: 0.0
       z: 0.0
       lower: 0.0
-      upper: 0.35
+      upper: 0.175
       effort: 800.0
       velocity: 0.25
-      length: 0.75
-      width: 0.1
-      height: 0.08
-      mass: 25.0
+      length: 0.375
+      width: 0.05
+      height: 0.04
+      mass: 0.09375
       link: manipulator_arm_extension_link
       joint: manipulator_arm_joint
   gripper:
     base:
-      x: 0.75
+      x: 0.375
       y: 0.0
       z: 0.0
-      length: 0.16
-      width: 0.34
-      height: 0.08
-      mass: 15.0
+      length: 0.08
+      width: 0.17
+      height: 0.04
+      mass: 0.0625
       link: manipulator_gripper_base_link
       joint: manipulator_gripper_base_joint
     fingers:
       lower: 0.0
-      upper: 0.135
+      upper: 0.0675
       effort: 100.0
       velocity: 0.2
-      x: 0.1
-      y_offset: 0.02
+      x: 0.05
+      y_offset: 0.01
       z: 0.0
-      length: 0.24
-      width: 0.025
-      height: 0.08
-      mass: 2.0
+      length: 0.12
+      width: 0.0125
+      height: 0.04
+      mass: 0.0125
       left_link: manipulator_left_finger_link
       right_link: manipulator_right_finger_link
       left_joint: manipulator_left_finger_joint
       right_joint: manipulator_right_finger_joint
     camera:
-      x: 0.07
+      x: 0.035
       y: 0.0
-      z: 0.24
-      length: 0.055
-      width: 0.08
-      height: 0.04
-      mass: 0.8
+      z: 0.12
+      length: 0.0275
+      width: 0.04
+      height: 0.02
+      mass: 0.00625
       link: gripper_camera_link
       joint: gripper_camera_joint
-      bracket_x: 0.0275
-      bracket_z: 0.125
-      bracket_length: 0.018
-      bracket_width: 0.018
-      bracket_height: 0.22
+      bracket_x: 0.01375
+      bracket_z: 0.0625
+      bracket_length: 0.009
+      bracket_width: 0.009
+      bracket_height: 0.11

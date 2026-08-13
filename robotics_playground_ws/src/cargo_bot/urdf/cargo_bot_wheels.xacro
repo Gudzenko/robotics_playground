@@ -96,6 +96,13 @@
       </collision>
     </link>
 
+    <!-- Near-ideal profile: model the rear ball as a freely sliding support,
+         rather than a third rubber contact that resists differential turns. -->
+    <gazebo reference="${geometry.rear_support.link}">
+      <mu1>0.001</mu1>
+      <mu2>0.001</mu2>
+    </gazebo>
+
     <gazebo>
       <plugin filename="gz-sim-diff-drive-system"
               name="gz::sim::systems::DiffDrive">
@@ -103,6 +110,10 @@
         <right_joint>${geometry.drive_wheels.right_joint}</right_joint>
         <wheel_separation>${2 * geometry.drive_wheels.y_offset}</wheel_separation>
         <wheel_radius>${geometry.drive_wheels.radius}</wheel_radius>
+        <max_linear_acceleration>${geometry.drive_wheels.controller.max_linear_acceleration}</max_linear_acceleration>
+        <min_linear_acceleration>${geometry.drive_wheels.controller.min_linear_acceleration}</min_linear_acceleration>
+        <max_angular_acceleration>${geometry.drive_wheels.controller.max_angular_acceleration}</max_angular_acceleration>
+        <min_angular_acceleration>${geometry.drive_wheels.controller.min_angular_acceleration}</min_angular_acceleration>
         <topic>/cmd_vel</topic>
         <odom_topic>/wheel_model/odometry</odom_topic>
         <tf_topic>/wheel_model/tf</tf_topic>

@@ -21,9 +21,9 @@ def test_manipulator_limits_are_loaded_from_project_geometry():
 
     assert limits == {
         ELEMENT_ROTATION: {'lower': -3.14159, 'upper': 3.14159},
-        ELEMENT_LIFT: {'lower': -0.78, 'upper': 0.78},
-        ELEMENT_ARM: {'lower': 0.0, 'upper': 0.35},
-        ELEMENT_GRIPPER: {'lower': 0.0, 'upper': 0.135},
+        ELEMENT_LIFT: {'lower': -0.39, 'upper': 0.39},
+        ELEMENT_ARM: {'lower': 0.0, 'upper': 0.175},
+        ELEMENT_GRIPPER: {'lower': 0.0, 'upper': 0.0675},
     }
 
 

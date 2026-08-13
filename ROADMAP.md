@@ -545,8 +545,8 @@ Status: complete. Gazebo publishes only the configured drive-wheel positions on
 `/sim/joint_states`. The `wheel_odometry` node relays wheel measurements to the standard
 `/joint_states` TF input alongside the independently published manipulator states, and quantizes
 continuous angles at the configured 2048
-ticks per revolution, integrates exact differential-drive increments using the shared `0.23 m`
-wheel radius and `1.16 m` separation, and publishes `/wheel/odometry` without TF. The ready-made
+ticks per revolution, integrates exact differential-drive increments using the shared `0.115 m`
+wheel radius and `0.58 m` separation, and publishes `/wheel/odometry` without TF. The ready-made
 Gazebo estimate is remapped to `/ground_truth/odometry`. Deterministic tests cover straight, arc and
 in-place motion, configurable symmetric quantization, incomplete samples and invalid timestamps;
 the headless Gazebo test confirms both independent odometry publishers. Step 9.4 is complete.
@@ -846,13 +846,10 @@ Acceptance criteria:
 Implementation status: the package, asynchronous mapping graph, parameterized spawn pose, saved
 RViz scene and automated map/TF contract are complete. RViz fixes LaserScan rendering in `map`.
 The ideal path now uses the Gazebo physical-pose OdometryPublisher rather than mislabeled DiffDrive
-wheel odometry, and disables unnecessary scan-matcher corrections. The motion test at 3 m/s
-measured 0.040324 m median consecutive-scan alignment error in both `odom` and `map`; the measured
-TF and physical Gazebo turn angles were identical. Hard braking can still pitch the physical
-chassis and lidar briefly, which is accepted for this stage. The focused mapping launch test saves
+wheel odometry, and disables unnecessary scan-matcher corrections. The focused mapping launch test saves
 a temporary occupancy map and pose graph and shuts down without leaving display processes. Latest
 focused results are clean: `cargo_bot` 121 tests, `cargo_bot_world` 6 tests and
-`cargo_bot_navigation` 26 tests, with zero errors and zero failures.
+`cargo_bot_navigation` 32 tests, with zero errors and zero failures.
 
 The exact implementation scope and acceptance thresholds for this step will be agreed before work
 starts, following the same one-step-at-a-time rule used for stabilization and sensor development.
@@ -869,8 +866,9 @@ Implementation and review sequence:
 
 1. Start with the default room-A pose and `sensor_profile:=ideal`.
 2. Record `/scan`, `/tf`, `/tf_static`, `/odometry/filtered` and `/clock` while mapping.
-3. Drive slowly through the circular route, then cover F and G. In `ideal`, avoid hard braking
-   because physical chassis pitch moves the lidar briefly; scan matching is intentionally off.
+3. Drive through the circular route, then cover F and G. The physical model is tuned for the
+   documented 3.0 m/s linear and 1.0 rad/s angular commands; abrupt-stop pitch is limited by the
+   robot's mass properties rather than hidden in the ideal sensor or TF pipeline.
 4. Return to room A and inspect the loop closure before saving anything as canonical.
 5. Tune one documented parameter group at a time and replay the recorded inputs where practical.
 6. Repeat the accepted route with a fixed seeded `realistic` profile; this is a robustness check,
@@ -922,6 +920,57 @@ continuation are verified in a fresh manual run.
 Expected result: the robot produces a consistent, reloadable indoor map through manual driving,
 without autonomous planning or motion.
 
+Physical mapping stability is shared by all sensor profiles. The tall manipulator mass was reduced
+to about 77 kg, chassis centre of mass was lowered by 0.10 m, chassis roll/pitch inertia was raised
+with a physically valid 2.0 multiplier, and the cargo deck mass was reduced to 80 kg. No extra
+ground-contact support was retained because it impeded differential-drive rotation. The SLAM
+integration test now includes 3.0 m/s forward motion, an abrupt stop and 1.0 rad/s rotation; it
+requires both normal turning and less than 0.035 rad (about 2 degrees) of IMU pitch deviation.
+The physical DiffDrive additionally limits forward acceleration to 2.0 m/s² and braking to
+4.0 m/s² while preserving the 3.0 m/s top speed. In the measured `turn -> forward` transition this
+reduced 0.5-second lateral drift from about 0.25 m to 0.01 m; rejected wheel-mass, passive-damping,
+chassis-decay and extreme-friction variants were not retained because they performed worse.
+
+For autonomous-navigation validation the physical model now uses a deliberately near-ideal
+profile before the later 50% scale change: 120 kg chassis, 10 kg cargo deck, 8 kg drive wheels,
+about 10.5 kg complete manipulator, low-friction rear ball support and the original forward
+drive-axle position at `x=0.32 m`. Keeping the axle below the manipulator-side part of the chassis
+and the ball at `x=-0.62 m` widens the
+longitudinal support layout and reduces pitch rocking under acceleration and braking. The DiffDrive limits are
+6.0 m/s² acceleration, 20.0 m/s² braking, 10.0 rad/s² angular acceleration and 15.0 rad/s² angular
+braking. A flat-world regression passed: straight lateral and heading drift were zero, stop drift
+was 0.189 m and a left/right figure eight closed within 0.244 m and 0.088 rad before the axle was
+restored. With the forward axle, motion of `base_link` during an in-place turn is expected and must
+not be classified as wheel skid. This profile is intentionally non-engineering and exists to
+isolate Nav2 behavior from the earlier heavy-body dynamics.
+
+The physical axle offset is represented explicitly by `base_axle`, currently fixed 0.16 m ahead of
+`base_footprint`. Static localization, planning, control and costmaps use this axle control point;
+SLAM and the world/model anchor remain unchanged. The same physical envelope is therefore
+re-expressed for navigation as `x=-0.585..0.49 m`, `y=-0.33..0.33 m`.
+
+The complete robot was subsequently scaled to 50% for indoor navigation. Link dimensions,
+offsets, wheels, sensors, collision geometry, lidar self-filter masks and manipulator linear
+travel all use scale 0.5. Masses use the constant-density scale 0.125 and generated inertias scale
+approximately by 0.03125. The map and world are unchanged. At half scale `base_axle` is 0.16 m
+ahead of `base_footprint`, and the same footprint becomes `x=-0.585..0.49 m`,
+`y=-0.33..0.33 m`. Controller and inflation tuning were deliberately left unchanged for the next,
+separately measured control-stability step.
+
+Corridor tuning keeps the hard polygon footprint unchanged while reducing the local soft
+inflation radius to 0.75 m and increasing local/global cost decay to 4.0. The required global
+1.49 m radius is retained for the footprint-aware Smac heuristic. Global planning time is bounded
+at 8.0 s after the former 2.0 s budget could not solve the far-left-room route. RPP collision
+projection remains at 0.40 s to avoid premature stops on distant projected arcs.
+
+Mapping scan density and robot self-filtering are also implemented. The lidar remains at 15 Hz and
+720 horizontal samples, while SLAM accepts scans every 0.03 rad of rotation or 0.05 m of travel and
+publishes the occupancy map every 0.25 s. `lidar_relay` preserves raw Gazebo data on `/sim/scan`
+and removes `/scan` endpoints inside configurable chassis and wheel masks. The masks live in
+`config/sensors.yaml`, so another robot geometry can supply its own exclusion boxes without code
+changes. Unit tests cover mask loading and selective rejection; the Gazebo SLAM integration test
+continues to verify mapping, motion, turning, TF alignment and bounded pitch.
+
 ### 11. Localization and path calculation without motion — implemented
 
 Localize on the saved map and calculate collision-free global paths while keeping all autonomous
@@ -936,7 +985,7 @@ must already account for known obstacles.
 - [x] Set and reset the initial pose through RViz
 - [ ] Verify that localization is stable in multiple rooms and along the circular route
 - [ ] Compare the localized pose with `/ground_truth/odometry`
-- [x] Ensure the localization system is the sole owner of `map -> odom`
+- [x] Ensure exactly one profile-appropriate source owns `map -> odom`
 
 #### 11.2 Define footprint and global costmap
 
@@ -956,7 +1005,8 @@ must already account for known obstacles.
 - [x] Verify that `/cmd_vel` has no publishers during the planning test
 
 Implementation status: `path_planning.launch.py` requires a user-created map and starts the indoor
-world, Map Server, AMCL, Planner Server with NavFn, lifecycle manager and `path_requester`. It does
+world, Map Server, AMCL, Planner Server with footprint-aware Smac Hybrid-A*, lifecycle manager and
+`path_requester`. It does
 not start Controller Server, BT Navigator, Behavior Server or Velocity Smoother. The same
 `initial_pose_x/y/yaw` values configure the Gazebo spawn and AMCL, while RViz retains interactive
 `2D Pose Estimate`. `2D Goal Pose` triggers an immediate calculation and displays the green path;
@@ -964,11 +1014,13 @@ new or invalid goals clear the previous result. The headless integration test lo
 map, verifies `map -> odom -> base_footprint`, creates a path with the requested final orientation,
 checks invalid-goal clearing and asserts that `/cmd_vel` has no publishers.
 
-The saved `indoor_map` was also checked directly after integration: `(0, 0)` is occupied and is
-not a valid spawn for the full Cargo Bot footprint, while `(-2, -3)` is a valid initial pose. A
-safe path from `(-2, -3)` to `(2, -3)` completes with Nav2 error code `0`. Gazebo joint states are
-remapped into `robot_state_publisher`, so RViz receives transforms for the wheels and articulated
-Cargo Bot links instead of reporting missing-link TF errors.
+For deterministic navigation, `ideal` uses a fixed identity `map -> odom` and disables AMCL's TF
+broadcast, preventing particle-filter corrections from rotating or shifting a map built from exact
+odometry. `realistic` and `harsh` retain AMCL as the transform owner. The rebuilt `indoor_map` was
+checked directly after integration: `(0, 0)` is a valid spawn with about 3.14 m clearance to the
+nearest non-free cell. Gazebo joint states are remapped into `robot_state_publisher`, so RViz
+receives transforms for the wheels and articulated Cargo Bot links instead of reporting
+missing-link TF errors.
 
 Remaining manual acceptance checks:
 
@@ -980,32 +1032,98 @@ Remaining manual acceptance checks:
 Expected result: the robot is localized on the saved map and can calculate a valid global path to
 a requested goal without moving.
 
-### 12. Static-world trajectory execution
+### 12. Static-world trajectory execution — implemented
 
 Follow validated paths in the unchanged indoor world before introducing unexpected or moving
 obstacles.
 
 #### 12.1 Configure path following
 
-- [ ] Add and tune the controller server for the differential-drive base
-- [ ] Apply conservative linear, angular and acceleration limits
-- [ ] Configure progress, goal and path-following tolerances
-- [ ] Verify cancellation always stops the robot
+- [x] Add and tune the controller server for the differential-drive base
+- [x] Apply conservative linear, angular and acceleration limits
+- [x] Configure progress, goal and path-following tolerances
+- [x] Complete goals by position within 0.30 m without circling for final yaw
+- [x] Verify cancellation always stops the robot
 
 #### 12.2 Validate representative trajectories
 
-- [ ] Test straight motion, right-angle turns, arcs and final orientation
-- [ ] Test door, corridor and furnished-room traversal
-- [ ] Measure path-tracking error and check for oscillation near walls and goals
-- [ ] Verify clean stops and velocity-limit compliance
+- [x] Test straight motion and cancellation with bounded velocity in an automated Gazebo launch
+- [x] Test a corridor-exit turn and arrival in a neighbouring room in an automated Gazebo launch
+- [ ] Test arcs and final orientation on representative user goals
+- [x] Test a long automated route from the initial room into the furnished far-left room
+- [ ] Test every remaining required door, corridor and furnished-room traversal
+- [x] Measure straight-line path-tracking error and check for oscillation
+- [x] Verify ground-truth arrival, clean goal/cancellation stops and motion-limit compliance
+- [x] Check the complete rotated footprint against occupied map cells throughout the long route
+- [x] Run every automated navigation scenario three times in isolated simulations
 
 #### 12.3 Add complete `NavigateToPose` behaviour
 
-- [ ] Add the BT Navigator and a minimal reviewed recovery set
-- [ ] Send goals from RViz and the ROS action interface
+- [x] Add the BT Navigator and a minimal reviewed recovery set
+- [x] Send goals from RViz and the ROS action interface
 - [ ] Navigate between every required room in the static world
-- [ ] Handle cancellation, invalid goals and unreachable goals explicitly
-- [ ] Document launch, operation and troubleshooting
+- [x] Handle cancellation, invalid goals and unreachable goals explicitly
+- [x] Document launch, operation and troubleshooting
+
+Implementation status: `static_navigation.launch.py` reuses the validated map, AMCL and
+footprint-aware Smac Hybrid-A*
+stack and adds Regulated Pure Pursuit, a rolling static local costmap, Behavior Server, BT
+Navigator and Velocity Smoother. Raw controller commands use `/cmd_vel_nav`; only bounded smoothed
+commands reach `/cmd_vel`. `/cancel_navigation` cancels every active NavigateToPose goal, and the
+launch test verifies physical displacement, configured speed bounds and a final zero Twist. The
+manipulator home transform is rotated 180 degrees so the arm starts behind the mobile base.
+The rebuilt indoor map uses its original mapping pose `(0.0, 0.0, 1.5708)` as the verified start.
+PGM analysis measured about 3.14 m to the nearest non-free cell there; the former `(-2.0, -1.0)`
+start has only about 1.03 m and was removed because the full robot cannot safely turn in place.
+Global and local inflation use `1.45 m`, just above the polygon footprint's `1.438 m`
+circumscribed radius, with fast `3.5` cost decay. This enables optimized full-footprint
+checks without turning the whole inflation radius into a lethal exclusion zone. Static navigation
+follows paths at a nominal
+1.6 m/s with a 1.8 m/s output limit, 1.2 m/s² acceleration and 1.5 m/s² braking.
+Smac validates every planned pose against the asymmetric polygon footprint and uses a forward-only
+`0.8 m` minimum turning radius, preventing paths whose centre line is clear while a front chassis
+corner intersects a wall.
+Cost-regulated controller scaling reduces speed within `0.85 m` of inflated obstacle cost while
+preserving the nominal speed in open areas, preventing high-speed corner cutting near walls.
+`PositionGoalChecker` ends the action within `0.30 m` of the selected point and ignores final yaw;
+this prevents repeated loops around an already reached position.
+Smac uses `ALL_DIRECTION` arrival headings, position success is not blocked by the remaining
+length of an obsolete terminal loop, and the static-world behavior tree replans only for a changed
+goal or an invalid path. This prevents last-moment route replacement and forced turns.
+Recovery now guarantees `ComputePathToPose` before every retried `FollowPath`, eliminating the
+observed empty-plan loop after costmap clearing or backup. Blind spin recovery is excluded.
+The branch is a `SequenceWithMemory`, preventing `ComputePathToPose` from being re-ticked at the
+20 Hz control rate while `FollowPath` is still running.
+The local controller is Regulated Pure Pursuit with a nominal 2.0 m/s speed, adaptive
+0.40..0.80 m lookahead and curvature-based speed reduction. Velocity Smoother applies 1.8 m/s²
+linear and 2.5 rad/s² angular acceleration limits. An equal-route upper-corridor comparison
+reduced peak path error from 0.106 m to 0.069 m, mean error from 0.055 m to 0.027 m and centerline
+crossings from 8 to 0. A corridor-exit turn reached its goal with 0.159 m peak and 0.064 m mean
+error; the straight-section requirement of at most 0.10 m is satisfied.
+MPPI does not score the local inflation gradient again over the complete asymmetric footprint;
+that duplicated clearance cost made valid doorways more expensive than stopping. The globally
+inflated Smac path and hard polygon trajectory validator retain collision safety, while stronger
+path-follow scoring maintains useful forward motion. A velocity-deadband critic penalizes
+ineffective commands below `0.12 m/s` linear or `0.08 rad/s` angular.
+The controller uses `SimpleProgressChecker`: only `0.20 m` of real translation within 10 seconds
+counts as progress. Rotation or rocking can no longer keep a physically stuck navigation action
+alive indefinitely; recovery clears, replans and backs up when needed. Velocity Smoother alone
+enforces the physical `1.2 m/s²` linear and `0.8 rad/s²` angular acceleration limits.
+The footprint covers the ground-contact chassis and wheel outer edges
+(`x=-0.85..1.30 m`, `y=-0.66..0.66 m`); elevated folded-arm links do not create a fictitious
+planar exclusion zone. `REEDS_SHEPP` planning and `-0.5 m/s` controller reverse
+allow a short repositioning maneuver where a forward-only Dubins arc would physically jam.
+Local inflation is restored to `0.90 m` with `2.5` decay, preserving usable doorway width while
+the trajectory validator continues hard full-footprint collision checks.
+Every recovery recomputes `{path}` after clearing or backing up before retrying `FollowPath`, so a
+cleared zero-pose path can no longer be sent to the controller.
+
+Remaining manual acceptance checks:
+
+- [ ] Drive right-angle, curved and final-yaw goals on the user's saved map
+- [ ] Verify doorway, corridor and furnished-room clearance
+- [ ] Navigate between every required room in the static indoor world
+- [ ] Inspect oscillation near walls and goals on routes not covered by automation
 
 Expected result: the robot autonomously reaches goals on the saved map when the simulated world
 matches that map.
@@ -1055,6 +1173,11 @@ navigation path is working.
 Expected result: manipulator commands move the physical Gazebo links and report measured state.
 
 ## Later improvements
+
+Process hygiene is part of acceptance for every roadmap stage: each Gazebo, RViz, SLAM or Nav2
+test must end with a host process-table check. Confirmed orphan processes from the completed run
+must be stopped with `SIGINT`, then `SIGTERM`, and `SIGKILL` only if graceful shutdown fails. A test
+is not complete while one of its simulation or visualization processes remains alive.
 
 These items should follow a concrete navigation or manipulation use case:
 

@@ -191,6 +191,10 @@ def generate_launch_description():
         package='cargo_bot',
         executable='manipulator_control_node',
         parameters=[{'use_sim_time': True}],
+        # robot_state_publisher consumes the Gazebo wheel states on this topic.
+        # Publish the manipulator states there as well so its complete TF branch
+        # remains connected in RViz. Wheel odometry ignores non-wheel samples.
+        remappings=[('joint_states', '/sim/joint_states')],
     )
 
     return LaunchDescription([

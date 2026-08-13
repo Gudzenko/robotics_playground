@@ -1,4 +1,6 @@
-"""Relay ideal lidar measurements to the stable navigation topic."""
+"""Filter and relay lidar measurements to the stable navigation topic."""
+
+import math
 
 from pathlib import Path
 
@@ -37,8 +39,61 @@ def load_lidar_topics(config_path=None):
     return source_topic, output_topic
 
 
+def load_self_filter(config_path=None):
+    """Load the robot-relative lidar self-filter configuration."""
+    if config_path is None:
+        package_share = Path(get_package_share_directory('cargo_bot'))
+        config_path = package_share / 'config' / 'sensors.yaml'
+
+    with Path(config_path).open(encoding='utf-8') as config_file:
+        lidar_config = yaml.safe_load(config_file)['lidar']
+
+    config = lidar_config.get('self_filter', {'enabled': False})
+    boxes = []
+    for box in config.get('exclusion_boxes', []):
+        parsed = tuple(
+            float(box[key])
+            for key in ('min_x', 'max_x', 'min_y', 'max_y')
+        )
+        if not all(math.isfinite(value) for value in parsed):
+            raise ValueError('Lidar self-filter bounds must be finite')
+        if parsed[0] >= parsed[1] or parsed[2] >= parsed[3]:
+            raise ValueError('Lidar self-filter boxes must have positive area')
+        boxes.append(parsed)
+    return (
+        bool(config.get('enabled', False)),
+        float(config.get('lidar_origin_x', 0.0)),
+        float(config.get('lidar_origin_y', 0.0)),
+        boxes,
+    )
+
+
+def filter_self_returns(
+    ranges,
+    angle_min,
+    angle_increment,
+    lidar_origin_x,
+    lidar_origin_y,
+    exclusion_boxes,
+):
+    """Replace scan endpoints inside robot-relative exclusion boxes with infinity."""
+    filtered = list(ranges)
+    for index, distance in enumerate(filtered):
+        if not math.isfinite(distance):
+            continue
+        angle = angle_min + index * angle_increment
+        point_x = lidar_origin_x + distance * math.cos(angle)
+        point_y = lidar_origin_y + distance * math.sin(angle)
+        if any(
+            min_x <= point_x <= max_x and min_y <= point_y <= max_y
+            for min_x, max_x, min_y, max_y in exclusion_boxes
+        ):
+            filtered[index] = math.inf
+    return filtered
+
+
 class LidarRelay(Node):
-    """Publish unchanged ideal scans under the stable navigation topic."""
+    """Remove robot self-returns and publish the stable navigation scan."""
 
     def __init__(self):
         super().__init__('lidar_relay')
@@ -51,6 +106,12 @@ class LidarRelay(Node):
             selected_profile,
         )
         self._generator = seeded_generator(seed)
+        (
+            self._self_filter_enabled,
+            self._lidar_origin_x,
+            self._lidar_origin_y,
+            self._exclusion_boxes,
+        ) = load_self_filter()
         output_qos = QoSProfile(
             depth=10,
             reliability=ReliabilityPolicy.RELIABLE,
@@ -73,6 +134,15 @@ class LidarRelay(Node):
         )
 
     def _relay_scan(self, message):
+        if self._self_filter_enabled:
+            message.ranges = filter_self_returns(
+                message.ranges,
+                message.angle_min,
+                message.angle_increment,
+                self._lidar_origin_x,
+                self._lidar_origin_y,
+                self._exclusion_boxes,
+            )
         message.ranges = apply_lidar_noise(
             message.ranges,
             message.range_min,

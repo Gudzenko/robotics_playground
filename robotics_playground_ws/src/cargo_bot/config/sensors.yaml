@@ -14,6 +14,14 @@ lidar:
   max_range: 20.0
   range_resolution: 0.01
   gazebo_native_noise: false
+  self_filter:
+    enabled: true
+    lidar_origin_x: 0.395
+    lidar_origin_y: 0.0
+    exclusion_boxes:
+      - {min_x: -0.4375, max_x: 0.4375, min_y: -0.275, max_y: 0.275}
+      - {min_x: 0.02, max_x: 0.30, min_y: 0.23, max_y: 0.35}
+      - {min_x: 0.02, max_x: 0.30, min_y: -0.35, max_y: -0.23}
   source_topics:
     gazebo: /sim/scan
     mock: /mock/scan
