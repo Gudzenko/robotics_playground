@@ -96,6 +96,8 @@ def generate_launch_description():
             '/cmd_vel@geometry_msgs/msg/Twist]gz.msgs.Twist',
             '/ground_truth/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
             '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
+            '/world/indoor_rooms/create@ros_gz_interfaces/srv/SpawnEntity',
+            '/world/indoor_rooms/remove@ros_gz_interfaces/srv/DeleteEntity',
         ],
         parameters=[{'use_sim_time': True}],
     )

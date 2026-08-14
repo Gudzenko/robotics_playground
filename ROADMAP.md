@@ -1005,7 +1005,7 @@ must already account for known obstacles.
 - [x] Verify that `/cmd_vel` has no publishers during the planning test
 
 Implementation status: `path_planning.launch.py` requires a user-created map and starts the indoor
-world, Map Server, AMCL, Planner Server with footprint-aware Smac Hybrid-A*, lifecycle manager and
+world, Map Server, AMCL, Planner Server with differential-drive Smac 2D, lifecycle manager and
 `path_requester`. It does
 not start Controller Server, BT Navigator, Behavior Server or Velocity Smoother. The same
 `initial_pose_x/y/yaw` values configure the Gazebo spawn and AMCL, while RViz retains interactive
@@ -1049,6 +1049,7 @@ obstacles.
 
 - [x] Test straight motion and cancellation with bounded velocity in an automated Gazebo launch
 - [x] Test a corridor-exit turn and arrival in a neighbouring room in an automated Gazebo launch
+- [x] Test a 180-degree axle turn with no more than 0.10 m axle displacement
 - [ ] Test arcs and final orientation on representative user goals
 - [x] Test a long automated route from the initial room into the furnished far-left room
 - [ ] Test every remaining required door, corridor and furnished-room traversal
@@ -1067,7 +1068,7 @@ obstacles.
 - [x] Document launch, operation and troubleshooting
 
 Implementation status: `static_navigation.launch.py` reuses the validated map, AMCL and
-footprint-aware Smac Hybrid-A*
+differential-drive Smac 2D
 stack and adds Regulated Pure Pursuit, a rolling static local costmap, Behavior Server, BT
 Navigator and Velocity Smoother. Raw controller commands use `/cmd_vel_nav`; only bounded smoothed
 commands reach `/cmd_vel`. `/cancel_navigation` cancels every active NavigateToPose goal, and the
@@ -1081,9 +1082,8 @@ circumscribed radius, with fast `3.5` cost decay. This enables optimized full-fo
 checks without turning the whole inflation radius into a lethal exclusion zone. Static navigation
 follows paths at a nominal
 1.6 m/s with a 1.8 m/s output limit, 1.2 m/s² acceleration and 1.5 m/s² braking.
-Smac validates every planned pose against the asymmetric polygon footprint and uses a forward-only
-`0.8 m` minimum turning radius, preventing paths whose centre line is clear while a front chassis
-corner intersects a wall.
+Smac 2D no longer imposes a car-like `0.8 m` turning radius. RPP rotates around the drive axle
+before forward travel when the path begins more than `0.35 rad` away.
 Cost-regulated controller scaling reduces speed within `0.85 m` of inflated obstacle cost while
 preserving the nominal speed in open areas, preventing high-speed corner cutting near walls.
 `PositionGoalChecker` ends the action within `0.30 m` of the selected point and ignores final yaw;
@@ -1097,7 +1097,7 @@ The branch is a `SequenceWithMemory`, preventing `ComputePathToPose` from being 
 20 Hz control rate while `FollowPath` is still running.
 The local controller is Regulated Pure Pursuit with a nominal 2.0 m/s speed, adaptive
 0.40..0.80 m lookahead and curvature-based speed reduction. Velocity Smoother applies 1.8 m/s²
-linear and 2.5 rad/s² angular acceleration limits. An equal-route upper-corridor comparison
+linear and symmetric 2.2 rad/s² angular acceleration/deceleration limits. An equal-route upper-corridor comparison
 reduced peak path error from 0.106 m to 0.069 m, mean error from 0.055 m to 0.027 m and centerline
 crossings from 8 to 0. A corridor-exit turn reached its goal with 0.159 m peak and 0.064 m mean
 error; the straight-section requirement of at most 0.10 m is satisfied.
@@ -1111,9 +1111,8 @@ counts as progress. Rotation or rocking can no longer keep a physically stuck na
 alive indefinitely; recovery clears, replans and backs up when needed. Velocity Smoother alone
 enforces the physical `1.2 m/s²` linear and `0.8 rad/s²` angular acceleration limits.
 The footprint covers the ground-contact chassis and wheel outer edges
-(`x=-0.85..1.30 m`, `y=-0.66..0.66 m`); elevated folded-arm links do not create a fictitious
-planar exclusion zone. `REEDS_SHEPP` planning and `-0.5 m/s` controller reverse
-allow a short repositioning maneuver where a forward-only Dubins arc would physically jam.
+(`x=-0.585..0.49 m`, `y=-0.33..0.33 m`); elevated folded-arm links do not create a fictitious
+planar exclusion zone. The controller turns in place instead of requiring a Dubins arc.
 Local inflation is restored to `0.90 m` with `2.5` decay, preserving usable doorway width while
 the trajectory validator continues hard full-footprint collision checks.
 Every recovery recomputes `{path}` after clearing or backing up before retrying `FollowPath`, so a
@@ -1129,32 +1128,45 @@ Remaining manual acceptance checks:
 Expected result: the robot autonomously reaches goals on the saved map when the simulated world
 matches that map.
 
-### 13. Obstacle avoidance and navigation safety
+### 13. Obstacle avoidance and navigation safety — implemented
 
 Add perception and response for obstacles that are absent from the saved map. Known static
 obstacles remain the responsibility of the global map and costmap from milestone 11.
 
 #### 13.1 Add live obstacle perception
 
-- [ ] Add a rolling local costmap with lidar obstacle marking and clearing
-- [ ] Verify that newly inserted obstacles appear and removed obstacles are cleared
-- [ ] Tune observation range, persistence and inflation for the robot footprint
+- [x] Add a rolling local costmap with lidar obstacle marking and clearing
+- [x] Verify that newly inserted obstacles appear and removed obstacles are cleared
+- [x] Retain obstacles outside the lidar view and clear them only after observed free-space evidence
+- [x] Tune observation range, persistence and inflation for the robot footprint
 
 #### 13.2 Add avoidance and replanning
 
-- [ ] Avoid a newly inserted obstacle when local clearance exists
-- [ ] Request a new global path when the current route is blocked
-- [ ] Stop and report failure when no safe route exists
-- [ ] Resume or accept a new goal after the obstruction is removed
-- [ ] Test partial and complete blockage of doors and corridors
+- [x] Avoid a newly inserted obstacle when local clearance exists
+- [x] Request a new global path when the current route is blocked
+- [x] Stop and report failure when no safe route exists
+- [x] Resume or accept a new goal after the obstruction is removed
+- [x] Test partial and complete blockage of a corridor
 
 #### 13.3 Add a collision-monitor safety layer
 
-- [ ] Add independent slowdown and stop zones around the robot
-- [ ] Route autonomous velocity commands through the collision monitor
-- [ ] Verify emergency stopping for a suddenly appearing close obstacle
-- [ ] Verify the robot body does not trigger false positive stops
-- [ ] Cover avoidance, replanning and safety stops with repeatable tests
+- [x] Add independent slowdown and stop zones around the robot
+- [x] Route autonomous velocity commands through the collision monitor
+- [x] Verify emergency stopping for a close obstacle
+- [x] Verify the robot body does not trigger false positive stops
+- [x] Cover perception, avoidance, blockage recovery and safety configuration with repeatable tests
+
+Implementation status: `obstacle_navigation.launch.py` adds lidar obstacle layers to both Nav2
+costmaps, periodic 1 Hz global replanning and Collision Monitor after Velocity Smoother. Its stop
+polygon has priority over the larger 35% slowdown polygon. `obstacle_manager` creates and removes
+a parameterized collision box through Gazebo services. A separate map-frame obstacle memory keeps
+observations when they leave the lidar view, while a native non-clearable Nav2 costmap plugin writes
+them directly into the master global costmap as lethal cells. A remembered region is removed only
+after repeated neighbouring rays confirm free space. Global recovery and obstacle-removal services
+never erase that memory blindly. The acceptance test inserts a partial corridor obstruction, verifies its
+lethal cost and persistence after a detour, then verifies evidence-based removal, safe waiting
+behind a complete obstruction and successful goal acceptance after removal. All simulation
+tests run in isolated process groups and are forcibly cleaned up on failure or timeout.
 
 Expected result: the robot avoids unexpected obstacles when possible, replans when necessary and
 stops safely when no collision-free response exists.

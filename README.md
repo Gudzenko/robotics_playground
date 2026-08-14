@@ -163,8 +163,7 @@ The navigation package provides both the SLAM mapping layer and localization/glo
 on a user-created map. Mapping starts the indoor Gazebo simulation, the ideal-by-default sensor
 stack and asynchronous SLAM Toolbox. In `ideal`,
 Gazebo's physical model pose is relayed directly as local odometry; `realistic` and `harsh` use the
-wheel/IMU EKF. Path planning starts Map Server, AMCL, a static global costmap and footprint-aware
-Smac Hybrid-A*, but no
+wheel/IMU EKF. Path planning starts Map Server, AMCL, a global costmap and Smac 2D, but no
 controller or autonomous navigation component. In `ideal`, exact odometry is anchored by a fixed
 identity `map -> odom` transform and AMCL does not publish that transform; this prevents
 particle-filter corrections from slowly rotating or shifting the map. In `realistic` and `harsh`,
@@ -365,24 +364,15 @@ In RViz:
 4. The green `/planned_path` line is replaced automatically after every valid goal.
 
 The click publishes `/goal_pose`. `path_requester` calls Nav2 `ComputePathToPose` with the
-`GridBased` Smac Hybrid-A* planner and republishes the result on `/planned_path`. Unlike the former
-NavFn setup, Smac checks the full polygon footprint at each planned orientation, so a valid path
-cannot place the long front corner of the robot inside a wall. A new click immediately
+`GridBased` Smac 2D planner and republishes the result on `/planned_path`. It matches the
+differential-drive base and does not impose a fictitious car-like minimum turning radius. A new click immediately
 clears the previous line. A goal outside the map, inside an inflated obstacle or in an unreachable
 region leaves the path empty and prints `No valid path` in Terminal 1.
 
-The global costmap contains only the saved static map and inflation layer. The reviewed polygonal
-footprint extends from `x=-0.85` to `x=1.30` m and from `y=-0.55` to `y=0.55` m, with `0.02` m
-padding. The global inflation radius is `1.45 m`, just above the footprint's computed `1.438 m`
-circumscribed radius required by Smac, with a relatively fast `3.5` cost decay. This radius enables
-correct optimized polygon collision checks; it is not a uniformly lethal 1.45 m exclusion zone.
-The local and global costmaps use the same `1.45 m` technical inflation with fast `3.5` decay,
-allowing optimized full-footprint checks without making that entire radius lethal. The planner
-uses forward-only Dubins motion
-with a `0.8 m` minimum turning radius; if a near-wall goal
-does not leave enough room for the complete footprint and final heading, it is rejected before the
-robot moves instead of allowing the chassis to become physically stuck. Live obstacle perception is
-intentionally deferred to the obstacle-avoidance stage.
+The global costmap uses the reviewed `base_axle` footprint
+(`x=-0.585..0.49 m`, `y=-0.33..0.33 m`) with `0.01 m` padding. Static and live lidar obstacles are
+inflated with `4.0` cost decay. Hard collision checks use the physical footprint, while the outer
+inflation band is a soft planning cost rather than a uniformly forbidden region.
 
 This mode cannot move the robot: it does not launch Controller Server, BT Navigator, Behavior
 Server or Velocity Smoother. Confirm that no node publishes velocity commands in Terminal 2:
@@ -438,9 +428,8 @@ about 3.14 m of measured clearance. For another map, choose `initial_pose_*` so 
 
 The navigation footprint is the ground-contact envelope of the chassis and outer wheel edges,
 expressed about `base_axle` (`x=-0.585..0.49 m`, `y=-0.33..0.33 m`). Elevated manipulator links are deliberately excluded from
-the planar costmap, so the robot is not surrounded by a fictitious rear exclusion area. Smac uses
-`REEDS_SHEPP`, so a constrained turn may
-contain a short reverse segment instead of forcing an impossible forward-only arc.
+the planar costmap, so the robot is not surrounded by a fictitious rear exclusion area. Smac 2D
+plans translations without treating the differential-drive robot as a car.
 The local costmap uses a compact `0.75 m` inflation band with `4.0` decay so corridor and doorway
 exits remain usable; hard full-footprint collision validation remains independent of this soft
 cost band. The global radius remains `1.49 m` to cover the complete circumscribed footprint, but
@@ -448,11 +437,13 @@ its `4.0` decay makes the outer band less expensive. Smac planning time is limit
 RPP collision projection is limited to `0.40 s` so distant projected arcs do not cause premature
 stops.
 
-The static-navigation mode uses Regulated Pure Pursuit with collision checking, a static rolling
-local costmap and a translation-based progress checker. `PositionGoalChecker` completes navigation when
+The static-navigation mode uses Regulated Pure Pursuit with collision checking, a rolling local
+costmap and a translation-based progress checker. When the path begins more than `0.35 rad` away,
+RPP stops translation, rotates at up to `0.8 rad/s` around the drive axle and only then moves
+forward. `PositionGoalChecker` completes navigation when
 the robot comes within `0.30 m` of the requested position; final yaw is deliberately ignored so
 the large chassis stops instead of circling the point to match the RViz arrow.
-Smac uses `ALL_DIRECTION` arrival headings instead of building a terminal loop for that arrow.
+The final RViz arrow remains a hint; completion is position-based.
 Because this stage uses an unchanged static world, its behavior tree retains a valid global path
 and replans only when the goal changes or the current path becomes invalid—not every second during
 the final approach.
@@ -466,7 +457,7 @@ longer hide a chassis that is stuck in a doorway; Nav2 enters recovery and repla
 Velocity Smoother limits output to `3.0 m/s` linear and `1.0 rad/s` angular, while RPP currently
 requests a stable nominal `2.0 m/s`. Its speed-scaled lookahead spans `0.40..0.80 m`; curvature
 scaling preserves speed on straights and slows smoothly on turns. Smoother limits are `1.8 m/s²`
-linear and `2.5 rad/s²` angular acceleration, with `2.5 m/s²` and `3.0 rad/s²` deceleration.
+linear acceleration and symmetric `2.2 rad/s²` angular acceleration/deceleration.
 On the measured 7.8 m upper-corridor straight this reduced maximum path error from 0.106 m to
 0.069 m, mean error from 0.055 m to 0.027 m, and path-axis crossings from 8 to 0. A corridor-exit
 route with a turn completed with 0.159 m peak and 0.064 m mean error; the peak is localized at
@@ -475,8 +466,13 @@ Safety is retained by the globally inflated Smac path and hard full-footprint tr
 following is weighted strongly enough to keep useful forward motion through valid passages.
 A velocity-deadband critic penalizes ineffective commands below `0.12 m/s` linear or
 `0.08 rad/s` angular without weakening collision validation.
-The local costmap deliberately has no live lidar obstacle layer yet: unexpected
-obstacles are handled in the next obstacle-avoidance milestone.
+The dedicated obstacle-navigation mode adds live lidar marking and clearing to both costmaps,
+replans the global route at 1 Hz and routes smoothed velocity through independent slowdown and
+stop polygons before Gazebo receives `/cmd_vel`. A separate global memory retains lidar obstacles
+outside the current field of view. A native `PersistentObstacleLayer` writes those cells directly
+into Nav2's master global costmap as lethal obstacles and cannot be erased by recovery clearing.
+It removes remembered cells only after repeated neighbouring laser rays observe that area as free;
+losing sight of an obstacle is not treated as removal.
 
 The launch tests exercise the real Gazebo model and saved map. The straight-corridor test checks
 ground-truth goal completion, at most 0.10 m peak and 0.05 m mean lateral error, no repeated
@@ -509,6 +505,52 @@ The runner executes the simulations sequentially and escalates shutdown from `SI
 The indoor-world launch also performs partition-scoped cleanup on every shutdown. If a launch
 test fails or is interrupted, only processes carrying that launch's exact `GZ_PARTITION` are
 stopped; unrelated Gazebo sessions are not matched.
+
+### Dynamic obstacle navigation
+
+Terminal 1 starts the saved-map navigation mode with live obstacle perception and safety zones:
+
+```bash
+cd ~/Other/robotics_playground/robotics_playground_ws
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+
+ros2 launch cargo_bot_navigation obstacle_navigation.launch.py \
+  map:=$PWD/saved_maps/indoor_map.yaml
+```
+
+Set the initial pose with `initial_pose_x`, `initial_pose_y` and `initial_pose_yaw` when using
+another map. Select `2D Goal Pose` in RViz to navigate. Terminal 2 can insert a red test obstacle;
+its position and size are launch parameters and may also be changed with `ros2 param set` before
+the next spawn:
+
+```bash
+cd ~/Other/robotics_playground/robotics_playground_ws
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+
+ros2 service call /spawn_navigation_obstacle std_srvs/srv/Trigger {}
+ros2 service call /remove_navigation_obstacle std_srvs/srv/Trigger {}
+```
+
+RViz shows the obstacle in the global/local costmap and displays the collision-monitor polygons.
+The larger polygon slows commands to 35%; the inner polygon has priority and stops the robot.
+After removal, the remembered obstacle remains until the lidar sees that location again and
+confirms free space. No service or recovery behavior blindly clears the global obstacle memory.
+
+Run only the dynamic-obstacle acceptance scenario in Terminal 1:
+
+```bash
+cd ~/Other/robotics_playground/robotics_playground_ws
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+
+python3 src/cargo_bot_navigation/test/run_navigation_acceptance.py \
+  test_launch_obstacle_navigation.py
+```
+
+This safe runner always terminates the isolated ROS/Gazebo process group after success, failure,
+interruption or timeout.
 
 Terminal 2 cancels the current goal and requests a zero command:
 

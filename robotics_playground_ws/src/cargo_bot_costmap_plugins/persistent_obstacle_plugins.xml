@@ -1,0 +1,7 @@
+<library path="persistent_obstacle_layer">
+  <class
+    type="cargo_bot_costmap_plugins::PersistentObstacleLayer"
+    base_class_type="nav2_costmap_2d::Layer">
+    <description>Writes evidence-based persistent obstacles into the master costmap.</description>
+  </class>
+</library>

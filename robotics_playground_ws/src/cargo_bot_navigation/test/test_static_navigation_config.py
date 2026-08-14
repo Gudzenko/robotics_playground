@@ -33,7 +33,8 @@ def test_controller_is_footprint_aware_and_collision_checked():
     assert follow['use_collision_detection'] is True
     assert follow['max_allowed_time_to_collision_up_to_carrot'] == 0.40
     assert follow['use_cost_regulated_linear_velocity_scaling'] is False
-    assert follow['use_rotate_to_heading'] is False
+    assert follow['use_rotate_to_heading'] is True
+    assert follow['rotate_to_heading_min_angle'] <= 0.35
     assert follow['allow_reversing'] is False
     assert controller['failure_tolerance'] == 3.0
     assert controller['progress_checker']['plugin'].endswith(
@@ -48,7 +49,13 @@ def test_controller_is_footprint_aware_and_collision_checked():
     assert goal_checker['path_length_tolerance'] == 100.0
     assert 'yaw_goal_tolerance' not in goal_checker
     assert 'static_layer' in local['plugins']
-    assert 'obstacle_layer' not in local['plugins']
+    assert 'obstacle_layer' in local['plugins']
+    obstacle = local['obstacle_layer']
+    assert obstacle['scan']['topic'] == '/scan'
+    assert obstacle['scan']['marking'] is True
+    assert obstacle['scan']['clearing'] is True
+    assert obstacle['scan']['observation_persistence'] >= 0.5
+    assert obstacle['scan']['max_obstacle_height'] >= 1.0
     assert local['footprint'] == (
         '[[0.49, 0.33], [0.49, -0.33], [-0.585, -0.33], [-0.585, 0.33]]'
     )
@@ -62,11 +69,22 @@ def test_velocity_smoother_limits_speed_acceleration_and_timeout():
 
     assert smoother['max_velocity'] == [3.0, 0.0, 1.0]
     assert smoother['max_accel'][0] == 1.8
-    assert smoother['max_accel'][2] == 2.5
+    assert smoother['max_accel'][2] == 2.2
     assert smoother['max_decel'][0] == -2.5
-    assert smoother['max_decel'][2] == -3.0
+    assert smoother['max_decel'][2] == -2.2
     assert smoother['velocity_timeout'] <= 0.5
     assert smoother['feedback'] == 'OPEN_LOOP'
+
+
+def test_collision_monitor_is_independent_and_uses_public_scan():
+    monitor = parameters('collision_monitor')
+
+    assert monitor['cmd_vel_in_topic'] == '/cmd_vel_smoothed'
+    assert monitor['cmd_vel_out_topic'] == '/cmd_vel'
+    assert monitor['polygons'] == ['StopZone', 'SlowZone']
+    assert monitor['SlowZone']['action_type'] == 'slowdown'
+    assert monitor['StopZone']['action_type'] == 'stop'
+    assert monitor['scan']['topic'] == '/scan'
 
 
 def test_bt_and_lifecycle_cover_complete_static_navigation_stack():
@@ -87,7 +105,9 @@ def test_launch_separates_raw_and_smoothed_velocity_topics():
     ).read_text()
 
     assert "('cmd_vel', '/cmd_vel_nav')" in launch_text
-    assert "('cmd_vel_smoothed', '/cmd_vel')" in launch_text
+    assert "('cmd_vel_smoothed', IfElseSubstitution(" in launch_text
+    assert "if_value='/cmd_vel_smoothed'" in launch_text
+    assert "else_value='/cmd_vel'" in launch_text
     assert "'use_path_requester': 'false'" in launch_text
     assert "'use_lifecycle_manager': 'false'" in launch_text
     assert "'navigation_start_delay': '6.0'" in launch_text
@@ -104,6 +124,15 @@ def test_static_bt_always_replans_before_retry_and_never_spins():
     assert '<SequenceWithMemory name="PlanThenFollow">' in tree
     assert '<PipelineSequence' not in tree
     assert '<Spin' not in tree
+
+
+def test_dynamic_bt_never_erases_global_obstacle_memory():
+    tree = (
+        PACKAGE / 'behavior_trees' / 'navigate_with_obstacles.xml'
+    ).read_text()
+    assert 'clear_entirely_global_costmap' not in tree
+    assert 'clear_entirely_local_costmap' in tree
+    assert '<RateController hz="1.0">' in tree
 
 
 def test_manipulator_home_orientation_points_backwards():

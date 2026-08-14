@@ -10,8 +10,9 @@ from launch.actions import (
     TimerAction,
     UnsetEnvironmentVariable,
 )
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import IfElseSubstitution, LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterFile
 
@@ -47,11 +48,8 @@ def generate_launch_description():
     sensor_profile = LaunchConfiguration('sensor_profile')
     gz_partition = LaunchConfiguration('gz_partition')
     navigation_params = LaunchConfiguration('navigation_params_file')
-    navigation_bt = os.path.join(
-        navigation_share,
-        'behavior_trees',
-        'navigate_static_path.xml',
-    )
+    navigation_bt = LaunchConfiguration('navigation_bt_file')
+    use_collision_monitor = LaunchConfiguration('use_collision_monitor')
 
     planning = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -98,7 +96,31 @@ def generate_launch_description():
         package='nav2_velocity_smoother', executable='velocity_smoother',
         name='velocity_smoother', output='screen',
         parameters=[params, {'use_sim_time': True}],
-        remappings=[('cmd_vel', '/cmd_vel_nav'), ('cmd_vel_smoothed', '/cmd_vel')],
+        remappings=[
+            ('cmd_vel', '/cmd_vel_nav'),
+            ('cmd_vel_smoothed', IfElseSubstitution(
+                use_collision_monitor,
+                if_value='/cmd_vel_smoothed',
+                else_value='/cmd_vel',
+            )),
+        ],
+    )
+    collision_monitor = Node(
+        package='nav2_collision_monitor', executable='collision_monitor',
+        name='collision_monitor', output='screen',
+        parameters=[params, {'use_sim_time': True}],
+        condition=IfCondition(use_collision_monitor),
+    )
+    collision_lifecycle = Node(
+        package='nav2_lifecycle_manager', executable='lifecycle_manager',
+        name='lifecycle_manager_collision_monitor', output='screen',
+        parameters=[{
+            'use_sim_time': True,
+            'autostart': True,
+            'bond_timeout': 4.0,
+            'node_names': ['collision_monitor'],
+        }],
+        condition=IfCondition(use_collision_monitor),
     )
     lifecycle = Node(
         package='nav2_lifecycle_manager', executable='lifecycle_manager',
@@ -145,6 +167,15 @@ def generate_launch_description():
                 navigation_share, 'config', 'static_navigation.yaml',
             ),
         ),
+        DeclareLaunchArgument(
+            'navigation_bt_file',
+            default_value=os.path.join(
+                navigation_share,
+                'behavior_trees',
+                'navigate_static_path.xml',
+            ),
+        ),
+        DeclareLaunchArgument('use_collision_monitor', default_value='false'),
         planning,
         TimerAction(
             period=6.0,
@@ -153,6 +184,8 @@ def generate_launch_description():
                 behavior,
                 navigator,
                 smoother,
+                collision_monitor,
+                collision_lifecycle,
                 lifecycle,
                 goal_navigator,
             ],

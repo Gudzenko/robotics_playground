@@ -32,6 +32,8 @@ setup(
         'console_scripts': [
             'path_requester = cargo_bot_navigation.path_requester:main',
             'goal_navigator = cargo_bot_navigation.goal_navigator:main',
+            'obstacle_manager = cargo_bot_navigation.obstacle_manager:main',
+            'persistent_obstacle_memory = cargo_bot_navigation.persistent_obstacle_memory:main',
             'save_slam_map = cargo_bot_navigation.save_slam_map:main',
         ],
     },

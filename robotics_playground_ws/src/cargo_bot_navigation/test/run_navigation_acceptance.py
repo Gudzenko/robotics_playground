@@ -12,6 +12,8 @@ TESTS = (
     ('test_launch_static_navigation.py', '117', 150),
     ('test_launch_static_navigation_turn.py', '118', 230),
     ('test_launch_static_navigation_long.py', '119', 250),
+    ('test_launch_obstacle_navigation.py', '120', 220),
+    ('test_launch_in_place_turn.py', '121', 150),
 )
 
 

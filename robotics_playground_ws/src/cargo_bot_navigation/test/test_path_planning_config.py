@@ -39,8 +39,22 @@ def test_global_costmap_has_static_geometry_and_reviewed_footprint():
     parameters = _config()['global_costmap']['global_costmap']['ros__parameters']
     assert parameters['global_frame'] == 'map'
     assert parameters['robot_base_frame'] == 'base_axle'
-    assert parameters['plugins'] == ['static_layer', 'inflation_layer']
-    assert 'obstacle_layer' not in parameters['plugins']
+    assert parameters['plugins'] == [
+        'static_layer', 'persistent_memory_layer', 'obstacle_layer',
+        'inflation_layer',
+    ]
+    obstacle = parameters['obstacle_layer']
+    assert obstacle['scan']['topic'] == '/scan'
+    assert obstacle['scan']['marking'] is True
+    assert obstacle['scan']['clearing'] is True
+    assert obstacle['scan']['observation_persistence'] == 0.0
+    assert obstacle['scan']['max_obstacle_height'] >= 1.0
+    memory = parameters['persistent_memory_layer']
+    assert memory['plugin'] == (
+        'cargo_bot_costmap_plugins::PersistentObstacleLayer'
+    )
+    assert memory['topic'] == '/persistent_obstacle_map'
+    assert memory['enabled'] is True
     assert parameters['footprint'] == (
         '[[0.49, 0.33], [0.49, -0.33], '
         '[-0.585, -0.33], [-0.585, 0.33]]'
@@ -49,17 +63,17 @@ def test_global_costmap_has_static_geometry_and_reviewed_footprint():
     assert parameters['inflation_layer']['cost_scaling_factor'] == 4.0
 
 
-def test_footprint_aware_smac_is_the_only_planner_and_no_motion_servers_launch():
+def test_differential_drive_smac_is_the_only_planner_and_no_motion_servers_launch():
     config = _config()
     planner = config['planner_server']['ros__parameters']
     assert planner['planner_plugins'] == ['GridBased']
     grid = planner['GridBased']
-    assert grid['plugin'] == 'nav2_smac_planner::SmacPlannerHybrid'
+    assert grid['plugin'] == 'nav2_smac_planner::SmacPlanner2D'
     assert grid['max_planning_time'] == 8.0
     assert grid['max_iterations'] == 4000000
-    assert grid['motion_model_for_search'] == 'DUBIN'
-    assert grid['minimum_turning_radius'] == 0.8
-    assert grid['goal_heading_mode'] == 'ALL_DIRECTION'
+    assert 'motion_model_for_search' not in grid
+    assert 'minimum_turning_radius' not in grid
+    assert grid['use_final_approach_orientation'] is False
     launch_text = LAUNCH_PATH.read_text(encoding='utf-8')
     assert "DeclareLaunchArgument(\n            'map', default_value=''" in launch_text
     assert "'initial_pose_x'" in launch_text
