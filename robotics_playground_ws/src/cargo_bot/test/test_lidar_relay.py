@@ -38,7 +38,7 @@ def test_self_filter_removes_robot_return_but_preserves_wall():
         lidar_origin_y=0.0,
         exclusion_boxes=[(-0.875, 0.875, -0.55, 0.55)],
     )
-    assert math.isinf(filtered[0])
+    assert math.isnan(filtered[0])
     assert filtered[1] == 2.0
     assert math.isinf(filtered[2])
 

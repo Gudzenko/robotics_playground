@@ -19,7 +19,8 @@ Current packages:
 | `cargo_bot` | Robot model, RViz scenes, kinematic drive and manipulator control |
 | `cargo_bot_interfaces` | Manipulator action, services and state message |
 | `cargo_bot_world` | Gazebo warehouse and multi-room environments |
-| `cargo_bot_navigation` | SLAM mapping and future Nav2 configuration |
+| `cargo_bot_navigation` | SLAM, localization, path following and obstacle navigation |
+| `cargo_bot_costmap_plugins` | Native persistent-obstacle layer for the Nav2 global costmap |
 
 ## Current status
 
@@ -29,12 +30,11 @@ The project currently supports three levels of simulation:
 2. RViz-only kinematic driving and manipulator visualization.
 3. Gazebo driving with differential-drive physics and collision-enabled environments.
 
-The robot can be driven manually through `/cmd_vel` in RViz and Gazebo. The manipulator action
-API controls joint-state visualization in RViz. A physical Gazebo controller for the manipulator,
-global map localization and autonomous navigation are not implemented yet. Live SLAM mapping is
-implemented, but the complete route and canonical indoor map still require manual review. Lidar,
-IMU, encoder odometry, deterministic noise/source substitution and EKF local odometry are
-implemented and form the verified navigation-sensor baseline.
+The robot can be driven manually through `/cmd_vel` in RViz and Gazebo. SLAM, saved-map
+localization, autonomous path following, live-obstacle avoidance, persistent obstacle memory and
+collision-monitor safety zones are implemented. The manipulator action API controls joint-state
+visualization in RViz; a physical Gazebo controller for it is not implemented. Navigation still
+needs the milestone 13 hardening checks listed below before that milestone is considered closed.
 
 ## Completed
 
@@ -1128,7 +1128,7 @@ Remaining manual acceptance checks:
 Expected result: the robot autonomously reaches goals on the saved map when the simulated world
 matches that map.
 
-### 13. Obstacle avoidance and navigation safety — implemented
+### 13. Obstacle avoidance and navigation safety — complete
 
 Add perception and response for obstacles that are absent from the saved map. Known static
 obstacles remain the responsibility of the global map and costmap from milestone 11.
@@ -1144,7 +1144,7 @@ obstacles remain the responsibility of the global map and costmap from milestone
 
 - [x] Avoid a newly inserted obstacle when local clearance exists
 - [x] Request a new global path when the current route is blocked
-- [x] Stop and report failure when no safe route exists
+- [x] End a persistently blocked goal with a bounded failure result instead of waiting indefinitely
 - [x] Resume or accept a new goal after the obstruction is removed
 - [x] Test partial and complete blockage of a corridor
 
@@ -1160,13 +1160,25 @@ Implementation status: `obstacle_navigation.launch.py` adds lidar obstacle layer
 costmaps, periodic 1 Hz global replanning and Collision Monitor after Velocity Smoother. Its stop
 polygon has priority over the larger 35% slowdown polygon. `obstacle_manager` creates and removes
 a parameterized collision box through Gazebo services. A separate map-frame obstacle memory keeps
-observations when they leave the lidar view, while a native non-clearable Nav2 costmap plugin writes
-them directly into the master global costmap as lethal cells. A remembered region is removed only
-after repeated neighbouring rays confirm free space. Global recovery and obstacle-removal services
-never erase that memory blindly. The acceptance test inserts a partial corridor obstruction, verifies its
-lethal cost and persistence after a detour, then verifies evidence-based removal, safe waiting
-behind a complete obstruction and successful goal acceptance after removal. All simulation
-tests run in isolated process groups and are forcibly cleaned up on failure or timeout.
+observations when they leave the lidar view. The native
+`cargo_bot_costmap_plugins::PersistentObstacleLayer` is non-clearable and writes occupied memory
+cells directly into the master global costmap as lethal cells. A remembered region is removed only
+after ten neighbouring-ray observations confirm free space. Global recovery and obstacle-removal
+services never erase that memory blindly. The acceptance test inserts a partial corridor
+obstruction, verifies direct lethal cost and persistence after a detour, then verifies
+evidence-based removal, continued execution beyond the former overall timeout and successful goal
+acceptance after removal. A second scenario moves one obstacle and verifies independent memory for
+two simultaneous obstacles. All simulation tests run in isolated process groups and are
+forcibly cleaned up on failure or timeout.
+
+#### 13.4 Completed hardening
+
+- [x] Allow unlimited goal duration while progress continues; bound only no-progress recovery and verify a terminal failed action result
+- [x] Add focused C++ tests for master-costmap marking, removal and resistance to recovery clearing
+- [x] Run the complete seven-package regression after the native plugin integration
+- [x] Validate an actually moving obstacle, not only a box spawned and removed at fixed coordinates
+- [x] Validate multiple simultaneous obstacles and independent evidence-based removal
+- [x] Repeat the dynamic-obstacle acceptance scenario three times without intermittent failures
 
 Expected result: the robot avoids unexpected obstacles when possible, replans when necessary and
 stops safely when no collision-free response exists.

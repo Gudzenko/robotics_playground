@@ -98,6 +98,7 @@ def generate_launch_description():
             '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
             '/world/indoor_rooms/create@ros_gz_interfaces/srv/SpawnEntity',
             '/world/indoor_rooms/remove@ros_gz_interfaces/srv/DeleteEntity',
+            '/world/indoor_rooms/set_pose@ros_gz_interfaces/srv/SetEntityPose',
         ],
         parameters=[{'use_sim_time': True}],
     )

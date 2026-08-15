@@ -133,6 +133,9 @@ def test_dynamic_bt_never_erases_global_obstacle_memory():
     assert 'clear_entirely_global_costmap' not in tree
     assert 'clear_entirely_local_costmap' in tree
     assert '<RateController hz="1.0">' in tree
+    assert '<Timeout' not in tree
+    assert '<RecoveryNode number_of_retries="3"' in tree
+    assert '<Spin spin_dist="1.57"/>' in tree
 
 
 def test_manipulator_home_orientation_points_backwards():

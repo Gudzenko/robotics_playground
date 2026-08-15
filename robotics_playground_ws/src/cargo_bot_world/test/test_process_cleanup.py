@@ -18,3 +18,12 @@ def test_partition_processes_matches_only_exact_partition(tmp_path):
     (tmp_path / 'not_a_pid').mkdir()
 
     assert partition_processes('test_a', Path(tmp_path)) == [101]
+
+
+def test_warehouse_launch_registers_partition_cleanup():
+    launch_file = Path(__file__).parents[1] / 'launch' / 'gazebo_warehouse.launch.py'
+    source = launch_file.read_text()
+
+    assert 'OnShutdown' in source
+    assert 'OpaqueFunction(function=_cleanup_partition)' in source
+    assert 'terminate_partition(partition)' in source

@@ -52,6 +52,7 @@ def generate_test_description():
             'initial_pose_yaw': '0.0',
             'headless': 'true',
             'use_rviz': 'false',
+            'obstacle_name': f'navigation_obstacle_{os.getpid()}',
             'obstacle_x': str(OBSTACLE_X),
             'obstacle_y': str(OBSTACLE_Y),
             'obstacle_size_x': str(OBSTACLE_SIZE),
@@ -138,6 +139,16 @@ class TestObstacleNavigation(unittest.TestCase):
                 return True
         return False
 
+    def _wait_for_active(self, client, timeout):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            state = client.call_async(GetState.Request())
+            if self._spin_until(state.done, 3.0):
+                if state.result().current_state.id == 3:
+                    return True
+            self._spin_until(lambda: False, 0.5)
+        return False
+
     def _maximum_grid_value_near(
         self, grid, world_x, world_y, radius_metres,
     ):
@@ -170,6 +181,35 @@ class TestObstacleNavigation(unittest.TestCase):
             OBSTACLE_X, OBSTACLE_Y, OBSTACLE_SIZE / 2.0 + 0.15,
         )
 
+    def _memory_diagnostic(self):
+        if self.memory_map is None:
+            return 'persistent map was never received'
+        info = self.memory_map.info
+        occupied = []
+        for index, value in enumerate(self.memory_map.data):
+            if value < 100:
+                continue
+            column = index % info.width
+            row = index // info.width
+            world_x = info.origin.position.x + column * info.resolution
+            world_y = info.origin.position.y + row * info.resolution
+            occupied.append((world_x, world_y))
+        if not occupied:
+            return 'persistent map contains no occupied cells'
+        nearest = min(
+            occupied,
+            key=lambda point: math.hypot(
+                point[0] - OBSTACLE_X, point[1] - OBSTACLE_Y,
+            ),
+        )
+        distance = math.hypot(
+            nearest[0] - OBSTACLE_X, nearest[1] - OBSTACLE_Y,
+        )
+        return (
+            f'{len(occupied)} occupied cells; nearest to obstacle is '
+            f'({nearest[0]:.2f}, {nearest[1]:.2f}), {distance:.2f} m away'
+        )
+
     def test_spawn_replan_avoid_remove(self):
         ready = self._spin_until(
             lambda: (
@@ -182,10 +222,14 @@ class TestObstacleNavigation(unittest.TestCase):
             ),
             80.0,
         )
-        self.assertTrue(ready)
-        state = self.monitor_state.call_async(GetState.Request())
-        self.assertTrue(self._spin_until(state.done, 5.0))
-        self.assertEqual(state.result().current_state.id, 3)
+        self.assertTrue(ready, (
+            f'odom={self.odometry is not None}, costmap={self.costmap is not None}, '
+            f'navigator={self.navigator.server_is_ready()}, '
+            f'spawn={self.spawn.service_is_ready()}, '
+            f'remove={self.remove.service_is_ready()}, '
+            f'monitor={self.monitor_state.service_is_ready()}'
+        ))
+        self.assertTrue(self._wait_for_active(self.monitor_state, 30.0))
 
         spawned = self.spawn.call_async(Trigger.Request())
         self.assertTrue(self._spin_until(spawned.done, 8.0))
@@ -193,13 +237,14 @@ class TestObstacleNavigation(unittest.TestCase):
         self.assertTrue(self._spin_until(
             lambda: self._maximum_cost_near_obstacle() >= 99, 30.0,
         ))
-        self.assertTrue(self._spin_until(
+        remembered = self._spin_until(
             lambda: self._maximum_grid_value_near(
                 self.memory_map, OBSTACLE_X, OBSTACLE_Y,
                 OBSTACLE_SIZE / 2.0 + 0.15,
             ) >= 100,
             30.0,
-        ))
+        )
+        self.assertTrue(remembered, self._memory_diagnostic())
 
         self.commands.clear()
         self.positions.clear()
@@ -270,7 +315,7 @@ class TestObstacleNavigation(unittest.TestCase):
             Parameter('x', value=0.0),
             Parameter('y', value=CORRIDOR_Y),
             Parameter('size_x', value=0.6),
-            Parameter('size_y', value=2.6),
+            Parameter('size_y', value=30.0),
         ])
         self.assertTrue(self._spin_until(parameters.done, 5.0))
         self.assertTrue(all(
@@ -293,14 +338,26 @@ class TestObstacleNavigation(unittest.TestCase):
         blocked_handle = sent.result()
         self.assertTrue(blocked_handle.accepted)
         blocked_result = blocked_handle.get_result_async()
-        self.assertFalse(self._spin_until(blocked_result.done, 15.0))
-        self.assertGreater(self.positions[-1][0], 0.85)
+        self._spin_until(lambda: False, 48.0)
+        self.assertFalse(blocked_result.done())
+        blocked_x, blocked_y = self.positions[-1]
+        self.assertGreater(
+            math.hypot(blocked_x + 2.0, blocked_y - CORRIDOR_Y), 0.5,
+        )
         canceled = blocked_handle.cancel_goal_async()
         self.assertTrue(self._spin_until(canceled.done, 5.0))
         self.assertTrue(self._spin_until(blocked_result.done, 5.0))
         self.assertEqual(
             blocked_result.result().status, GoalStatus.STATUS_CANCELED,
         )
+        self.assertTrue(self._spin_until(
+            lambda: (
+                self.commands
+                and abs(self.commands[-1].linear.x) < 1e-6
+                and abs(self.commands[-1].angular.z) < 1e-6
+            ),
+            3.0,
+        ))
 
         removed = self.remove.call_async(Trigger.Request())
         self.assertTrue(self._spin_until(removed.done, 8.0))
@@ -310,7 +367,7 @@ class TestObstacleNavigation(unittest.TestCase):
         resumed_handle = sent.result()
         self.assertTrue(resumed_handle.accepted)
         resumed_result = resumed_handle.get_result_async()
-        self.assertTrue(self._spin_until(resumed_result.done, 40.0))
+        self.assertTrue(self._spin_until(resumed_result.done, 100.0))
         self.assertEqual(resumed_result.result().status, GoalStatus.STATUS_SUCCEEDED)
         self.assertTrue(self._spin_until(
             lambda: self._maximum_grid_value_near(

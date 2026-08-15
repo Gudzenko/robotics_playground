@@ -11,6 +11,8 @@
 namespace cargo_bot_costmap_plugins
 {
 
+class PersistentObstacleLayerTestPeer;
+
 class PersistentObstacleLayer : public nav2_costmap_2d::Layer
 {
 public:
@@ -25,6 +27,8 @@ public:
   bool isClearable() override;
 
 private:
+  friend class PersistentObstacleLayerTestPeer;
+
   void mapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr message);
 
   std::mutex mutex_;

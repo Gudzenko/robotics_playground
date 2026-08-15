@@ -35,4 +35,20 @@ install(DIRECTORY include/ DESTINATION include)
 ament_export_include_directories(include)
 ament_export_libraries(persistent_obstacle_layer)
 ament_export_dependencies(nav2_costmap_2d nav_msgs pluginlib rclcpp)
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_persistent_obstacle_layer
+    test/test_persistent_obstacle_layer.cpp
+  )
+  target_link_libraries(test_persistent_obstacle_layer
+    persistent_obstacle_layer
+  )
+  ament_target_dependencies(test_persistent_obstacle_layer
+    nav2_costmap_2d
+    nav_msgs
+    rclcpp
+  )
+endif()
+
 ament_package()

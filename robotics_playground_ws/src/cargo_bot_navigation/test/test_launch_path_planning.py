@@ -129,6 +129,7 @@ class TestPathPlanningGraph(unittest.TestCase):
                 and self.costmap is not None
                 and planner_ready
                 and transform_ready
+                and self.goal_publisher.get_subscription_count() > 0
             ):
                 break
 
@@ -147,10 +148,15 @@ class TestPathPlanningGraph(unittest.TestCase):
         goal.header.stamp = self.node.get_clock().now().to_msg()
         self.goal_publisher.publish(goal)
         path_deadline = time.monotonic() + 20.0
+        next_publish = time.monotonic() + 1.0
         while time.monotonic() < path_deadline:
             rclpy.spin_once(self.node, timeout_sec=0.2)
             if self.path is not None and self.path.poses:
                 break
+            if time.monotonic() >= next_publish:
+                goal.header.stamp = self.node.get_clock().now().to_msg()
+                self.goal_publisher.publish(goal)
+                next_publish = time.monotonic() + 1.0
 
         self.assertIsNotNone(self.path)
         self.assertGreater(len(self.path.poses), 1)

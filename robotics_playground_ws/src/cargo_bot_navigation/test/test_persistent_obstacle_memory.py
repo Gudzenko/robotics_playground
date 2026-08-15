@@ -4,6 +4,7 @@ import math
 from types import SimpleNamespace
 
 from cargo_bot_navigation.persistent_obstacle_memory import (
+    PendingScanBuffer,
     PersistentObstacleGrid,
 )
 
@@ -30,7 +31,9 @@ def test_hit_remains_when_later_scan_does_not_observe_its_direction():
 
 
 def test_hit_is_removed_only_when_a_ray_passes_through_its_cell():
-    grid = PersistentObstacleGrid(resolution=0.05, maximum_range=12.0)
+    grid = PersistentObstacleGrid(
+        resolution=0.05, maximum_range=12.0, clear_confirmations=3,
+    )
     grid.update(
         0.0, 0.0, 0.0,
         scan([math.inf, math.inf, 2.0, math.inf, math.inf], -0.2),
@@ -68,3 +71,28 @@ def test_map_cells_follow_sensor_pose_and_heading():
     grid.update(1.0, 2.0, math.pi / 2.0, scan([1.0]))
 
     assert (20, 60) in grid.cells
+
+
+def test_scan_waits_until_its_transform_is_available():
+    pending = PendingScanBuffer(maximum_age=1.0)
+    delayed_scan = object()
+    pending.add(delayed_scan, received_at=10.0)
+
+    ready, expired = pending.resolve(lambda _: None, now=10.5)
+    assert ready == []
+    assert expired == 0
+
+    transform = object()
+    ready, expired = pending.resolve(lambda _: transform, now=10.6)
+    assert ready == [(delayed_scan, transform)]
+    assert expired == 0
+
+
+def test_scan_is_discarded_if_transform_never_arrives():
+    pending = PendingScanBuffer(maximum_age=1.0)
+    pending.add(object(), received_at=10.0)
+
+    ready, expired = pending.resolve(lambda _: None, now=11.1)
+
+    assert ready == []
+    assert expired == 1

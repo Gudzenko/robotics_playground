@@ -9,11 +9,12 @@ import sys
 
 
 TESTS = (
-    ('test_launch_static_navigation.py', '117', 150),
-    ('test_launch_static_navigation_turn.py', '118', 230),
-    ('test_launch_static_navigation_long.py', '119', 250),
-    ('test_launch_obstacle_navigation.py', '120', 220),
-    ('test_launch_in_place_turn.py', '121', 150),
+    ('acceptance_static_navigation.py', '117', 150),
+    ('acceptance_static_navigation_turn.py', '118', 230),
+    ('acceptance_static_navigation_long.py', '119', 250),
+    ('acceptance_obstacle_navigation.py', '120', 220),
+    ('acceptance_in_place_turn.py', '121', 150),
+    ('acceptance_obstacle_memory_scenarios.py', '122', 180),
 )
 
 
@@ -42,16 +43,21 @@ def run_test(test_dir, filename, domain_id, timeout):
     """Run one launch test in a new session and return its exit status."""
     environment = os.environ.copy()
     environment['ROS_DOMAIN_ID'] = domain_id
+    environment['CARGO_BOT_ISOLATED_NAV_TEST'] = '1'
     process = subprocess.Popen(
         [sys.executable, '-m', 'pytest', filename, '-q', '-s'],
         cwd=test_dir,
         env=environment,
         start_new_session=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
     )
     try:
-        return process.wait(timeout=timeout)
+        output, _ = process.communicate(timeout=timeout)
+        return process.returncode, output
     except subprocess.TimeoutExpired:
-        return 124
+        return 124, f'{filename} timed out after {timeout} seconds.'
     finally:
         stop_group(process)
 
@@ -81,8 +87,9 @@ def main():
                 f'{filename} ROS_DOMAIN_ID={run_domain}',
                 flush=True,
             )
-            result = run_test(test_dir, filename, run_domain, timeout)
+            result, output = run_test(test_dir, filename, run_domain, timeout)
             if result != 0:
+                print(output[-12000:], flush=True)
                 return result
             completed += 1
     print(f'Navigation acceptance: {completed} isolated runs passed.', flush=True)

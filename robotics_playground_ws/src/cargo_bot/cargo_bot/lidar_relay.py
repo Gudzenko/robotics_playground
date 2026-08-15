@@ -76,7 +76,7 @@ def filter_self_returns(
     lidar_origin_y,
     exclusion_boxes,
 ):
-    """Replace scan endpoints inside robot-relative exclusion boxes with infinity."""
+    """Mark scan endpoints inside robot-relative exclusion boxes as invalid."""
     filtered = list(ranges)
     for index, distance in enumerate(filtered):
         if not math.isfinite(distance):
@@ -88,7 +88,7 @@ def filter_self_returns(
             min_x <= point_x <= max_x and min_y <= point_y <= max_y
             for min_x, max_x, min_y, max_y in exclusion_boxes
         ):
-            filtered[index] = math.inf
+            filtered[index] = math.nan
     return filtered
 
 

@@ -37,11 +37,29 @@ def generate_launch_description():
         output='screen',
         parameters=[{
             'use_sim_time': True,
+            'obstacle_name': LaunchConfiguration('obstacle_name'),
+            'secondary_obstacle_name': LaunchConfiguration(
+                'secondary_obstacle_name',
+            ),
             'x': LaunchConfiguration('obstacle_x'),
             'y': LaunchConfiguration('obstacle_y'),
             'size_x': LaunchConfiguration('obstacle_size_x'),
             'size_y': LaunchConfiguration('obstacle_size_y'),
             'size_z': LaunchConfiguration('obstacle_size_z'),
+            'secondary_x': LaunchConfiguration('secondary_obstacle_x'),
+            'secondary_y': LaunchConfiguration('secondary_obstacle_y'),
+            'secondary_size_x': LaunchConfiguration(
+                'secondary_obstacle_size_x',
+            ),
+            'secondary_size_y': LaunchConfiguration(
+                'secondary_obstacle_size_y',
+            ),
+            'secondary_size_z': LaunchConfiguration(
+                'secondary_obstacle_size_z',
+            ),
+            'moving_target_x': LaunchConfiguration('moving_obstacle_target_x'),
+            'moving_target_y': LaunchConfiguration('moving_obstacle_target_y'),
+            'moving_duration': LaunchConfiguration('moving_obstacle_duration'),
         }],
     )
     obstacle_memory = Node(
@@ -66,10 +84,25 @@ def generate_launch_description():
             'gz_partition', default_value='cargo_bot_obstacle_navigation',
         ),
         DeclareLaunchArgument('obstacle_x', default_value='0.0'),
+        DeclareLaunchArgument(
+            'obstacle_name', default_value='navigation_obstacle',
+        ),
+        DeclareLaunchArgument(
+            'secondary_obstacle_name',
+            default_value='secondary_navigation_obstacle',
+        ),
         DeclareLaunchArgument('obstacle_y', default_value='3.0'),
         DeclareLaunchArgument('obstacle_size_x', default_value='0.8'),
         DeclareLaunchArgument('obstacle_size_y', default_value='0.8'),
         DeclareLaunchArgument('obstacle_size_z', default_value='1.0'),
+        DeclareLaunchArgument('secondary_obstacle_x', default_value='1.0'),
+        DeclareLaunchArgument('secondary_obstacle_y', default_value='3.0'),
+        DeclareLaunchArgument('secondary_obstacle_size_x', default_value='0.6'),
+        DeclareLaunchArgument('secondary_obstacle_size_y', default_value='0.6'),
+        DeclareLaunchArgument('secondary_obstacle_size_z', default_value='1.0'),
+        DeclareLaunchArgument('moving_obstacle_target_x', default_value='0.0'),
+        DeclareLaunchArgument('moving_obstacle_target_y', default_value='4.0'),
+        DeclareLaunchArgument('moving_obstacle_duration', default_value='4.0'),
         static_launch,
         obstacle_manager,
         obstacle_memory,

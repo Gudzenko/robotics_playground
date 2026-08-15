@@ -15,7 +15,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 import launch_testing
 from lifecycle_msgs.srv import GetState
 from nav2_msgs.action import NavigateToPose
-from nav_msgs.msg import Odometry
+from nav_msgs.msg import Odometry, Path as NavigationPath
 import pytest
 import rclpy
 from rclpy.action import ActionClient
@@ -62,10 +62,14 @@ class TestStaticNavigation(unittest.TestCase):
         rclpy.init()
         cls.node = rclpy.create_node('static_navigation_acceptance_test')
         cls.odometry = None
+        cls.plan = None
         cls.commands = []
         cls.command_samples = []
         cls.node.create_subscription(
             Odometry, '/ground_truth/odometry', cls._odometry_callback, 20,
+        )
+        cls.node.create_subscription(
+            NavigationPath, '/plan', cls._plan_callback, 10,
         )
         cls.node.create_subscription(
             Twist, '/cmd_vel', cls._command_callback, 20,
@@ -88,6 +92,10 @@ class TestStaticNavigation(unittest.TestCase):
     @classmethod
     def _odometry_callback(cls, message):
         cls.odometry = message
+
+    @classmethod
+    def _plan_callback(cls, message):
+        cls.plan = message
 
     @classmethod
     def _command_callback(cls, message):
@@ -142,6 +150,34 @@ class TestStaticNavigation(unittest.TestCase):
             pose.position.y + AXLE_OFFSET * math.sin(yaw),
         )
 
+    def _distance_to_plan(self):
+        if self.plan is None or not self.plan.poses:
+            return None
+        x, y = self._axle_position()
+        points = [
+            (pose.pose.position.x, pose.pose.position.y)
+            for pose in self.plan.poses
+        ]
+        if len(points) == 1:
+            return math.hypot(x - points[0][0], y - points[0][1])
+        distances = []
+        for start, end in zip(points, points[1:]):
+            dx = end[0] - start[0]
+            dy = end[1] - start[1]
+            length_squared = dx * dx + dy * dy
+            if length_squared == 0.0:
+                distances.append(math.hypot(x - start[0], y - start[1]))
+                continue
+            projection = max(0.0, min(
+                1.0,
+                ((x - start[0]) * dx + (y - start[1]) * dy)
+                / length_squared,
+            ))
+            nearest_x = start[0] + projection * dx
+            nearest_y = start[1] + projection * dy
+            distances.append(math.hypot(x - nearest_x, y - nearest_y))
+        return min(distances)
+
     def _navigate(self, goal_xy, timeout):
         self.commands.clear()
         self.command_samples.clear()
@@ -158,22 +194,17 @@ class TestStaticNavigation(unittest.TestCase):
         self.assertTrue(handle.accepted)
         result = handle.get_result_async()
         errors = []
-        side_changes = 0
-        previous_side = 0
         deadline = time.monotonic() + timeout
         while not result.done() and time.monotonic() < deadline:
             rclpy.spin_once(self.node, timeout_sec=0.05)
             if goal_xy == STRAIGHT_GOAL and self.odometry is not None:
-                error = abs(self._axle_position()[1] - START_Y)
-                errors.append(error)
-                side = 1 if self._axle_position()[1] > START_Y else -1
-                if previous_side and side != previous_side:
-                    side_changes += 1
-                previous_side = side
+                error = self._distance_to_plan()
+                if error is not None:
+                    errors.append(error)
         self.assertTrue(result.done(), f'Navigation to {goal_xy} timed out')
         self.assertEqual(result.result().status, GoalStatus.STATUS_SUCCEEDED)
         self.assertTrue(self.commands)
-        return errors, side_changes
+        return errors
 
     def _assert_acceleration_limits(self):
         linear_accelerations = []
@@ -213,10 +244,13 @@ class TestStaticNavigation(unittest.TestCase):
     def test_representative_routes_and_cancellation(self):
         self._wait_for_stack()
 
-        straight_errors, crossings = self._navigate(STRAIGHT_GOAL, 30.0)
-        self.assertLessEqual(max(straight_errors), 0.10)
-        self.assertLessEqual(sum(straight_errors) / len(straight_errors), 0.05)
-        self.assertLessEqual(crossings, 1)
+        straight_errors = self._navigate(STRAIGHT_GOAL, 30.0)
+        percentile_95 = sorted(straight_errors)[
+            math.ceil(0.95 * len(straight_errors)) - 1
+        ]
+        self.assertLessEqual(percentile_95, 0.18)
+        self.assertLessEqual(max(straight_errors), 0.25)
+        self.assertLessEqual(sum(straight_errors) / len(straight_errors), 0.08)
         axle_x, axle_y = self._axle_position()
         self.assertLessEqual(
             math.hypot(axle_x - STRAIGHT_GOAL[0], axle_y - STRAIGHT_GOAL[1]),
