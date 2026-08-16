@@ -157,6 +157,60 @@ below.
 
 ---
 
+## Automatic presentation demos
+
+The workspace includes short, repeatable demonstration launches intended for screen recording,
+project presentations and visual smoke checks. They run their choreography once and leave the
+visualization open after completion. Stop the complete launch with `Ctrl+C` and perform the
+mandatory process-cleanup check described above.
+
+### Cargo Bot model demo
+
+Build and launch the opaque production model in RViz:
+
+```bash
+cd robotics_playground_ws
+source /opt/ros/jazzy/setup.bash
+colcon build --symlink-install --packages-select cargo_bot_interfaces cargo_bot
+source install/setup.bash
+ros2 launch cargo_bot model_demo.launch.py
+```
+
+After a five-second startup delay, the demo rotates the mobile base through a complete revolution,
+then operates the lift, manipulator rotation, telescoping arm and gripper. It finishes by returning
+the manipulator to its home pose. The complete sequence takes approximately 45 seconds.
+
+This is an RViz kinematic presentation. The manipulator action API publishes joint states for
+visualization; it does not actuate the manipulator physically in Gazebo.
+
+### Automatic SLAM recording demo
+
+Launch Gazebo and RViz together with a new SLAM session:
+
+```bash
+cd robotics_playground_ws
+source /opt/ros/jazzy/setup.bash
+colcon build --symlink-install --packages-up-to cargo_bot_navigation
+source install/setup.bash
+ros2 launch cargo_bot_navigation mapping_demo.launch.py
+```
+
+The robot starts in room A at `(0.0, 3.0)` facing the east doorway. The launch leaves the robot
+stationary for ten seconds so the model and its lidar can be presented and the Gazebo/RViz windows
+can be arranged for recording. It then drives automatically at `0.75 m/s` for ten seconds, passes
+through the doorway into previously unobserved room C, publishes a clean stop command and leaves
+both windows open. RViz displays the live `/scan`, robot TF and the occupancy map produced by SLAM
+Toolbox while the robot moves.
+
+For a non-visual smoke check, disable both interfaces while retaining the same timing and motion:
+
+```bash
+ros2 launch cargo_bot_navigation mapping_demo.launch.py \
+  headless:=true use_rviz:=false
+```
+
+---
+
 ## Package: cargo_bot_navigation
 
 The navigation package provides both the SLAM mapping layer and localization/global-path planning

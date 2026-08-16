@@ -41,6 +41,7 @@ setup(
             'odometry_path_publisher = cargo_bot.odometry_paths:main',
             'wheel_odometry = cargo_bot.wheel_odometry:main',
             'warehouse_scene_publisher = cargo_bot.warehouse_scene_publisher:main',
+            'model_demo = cargo_bot.model_demo:main',
         ],
     },
 )

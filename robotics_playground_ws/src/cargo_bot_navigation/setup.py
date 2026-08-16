@@ -35,6 +35,7 @@ setup(
             'obstacle_manager = cargo_bot_navigation.obstacle_manager:main',
             'persistent_obstacle_memory = cargo_bot_navigation.persistent_obstacle_memory:main',
             'save_slam_map = cargo_bot_navigation.save_slam_map:main',
+            'mapping_demo = cargo_bot_navigation.mapping_demo:main',
         ],
     },
 )
